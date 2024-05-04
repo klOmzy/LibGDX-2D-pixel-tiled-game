@@ -38,7 +38,7 @@ public class PixelGame extends ApplicationAdapter {
 		renderer = new OrthogonalTiledMapRenderer(map);
 
 		playerAtlas = new TextureAtlas("player/player.atlas"); // load the player atlas
-		player = new Player(playerAtlas);
+		player = new Player(playerAtlas, mapWidth, mapHeight);
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);

@@ -16,9 +16,9 @@ public class Player {
     private float stateTime;
     private TextureRegion currentFrame; // Добавляем переменную currentFrame
 
-    public Player(TextureAtlas atlas) {
+    public Player(TextureAtlas atlas, float mapWidth, float mapHeight) {
         this.atlas = atlas;
-        position = new Vector2(0, 0);
+        position = new Vector2(mapWidth / 2, mapHeight / 2); // Устанавливаем начальную позицию игрока в центре карты
         stateTime = 0;
 
         createAnimations();
@@ -26,7 +26,6 @@ public class Player {
     }
 
     public void update(float delta, float mapWidth, float mapHeight) {
-
         boolean isMoving = false;
 
         if (Gdx.input.isKeyPressed(Input.Keys.W)) {
@@ -48,7 +47,7 @@ public class Player {
             position.x += 100 * delta;
             isMoving = true;
         }
-
+        // Ограничиваем движение игрока внутри границ карты
         if (position.x < 0) {
             position.x = 0;
         }
@@ -89,29 +88,25 @@ public class Player {
     private Animation<TextureRegion> frontAnimation;
 
     private void createAnimations() {
-        Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
-        leftFrames.add(atlas.findRegion("left"));
+        Array<TextureAtlas.AtlasRegion> leftFrames = atlas.findRegions("left");        leftFrames.add(atlas.findRegion("left"));
         leftFrames.add(atlas.findRegion("left1"));
         leftFrames.add(atlas.findRegion("left2"));
         leftFrames.add(atlas.findRegion("left3"));
         leftAnimation = new Animation<>(0.3f, leftFrames, Animation.PlayMode.LOOP);
 
-        Array<TextureAtlas.AtlasRegion> rightFrames = new Array<>();
-        rightFrames.add(atlas.findRegion("right"));
+        Array<TextureAtlas.AtlasRegion> rightFrames = atlas.findRegions("right");        rightFrames.add(atlas.findRegion("right"));
         rightFrames.add(atlas.findRegion("right1"));
         rightFrames.add(atlas.findRegion("right2"));
         rightFrames.add(atlas.findRegion("right3"));
         rightAnimation = new Animation<>(0.3f, rightFrames, Animation.PlayMode.LOOP);
 
-        Array<TextureAtlas.AtlasRegion> backFrames = new Array<>();
-        backFrames.add(atlas.findRegion("back"));
+        Array<TextureAtlas.AtlasRegion> backFrames = atlas.findRegions("back");        backFrames.add(atlas.findRegion("back"));
         backFrames.add(atlas.findRegion("back1"));
         backFrames.add(atlas.findRegion("back2"));
         backFrames.add(atlas.findRegion("back3"));
         backAnimation = new Animation<>(0.3f, backFrames, Animation.PlayMode.LOOP);
 
-        Array<TextureAtlas.AtlasRegion> frontFrames = new Array<>();
-        frontFrames.add(atlas.findRegion("front"));
+        Array<TextureAtlas.AtlasRegion> frontFrames = atlas.findRegions("front");        frontFrames.add(atlas.findRegion("front"));
         frontFrames.add(atlas.findRegion("front1"));
         frontFrames.add(atlas.findRegion("front2"));
         frontFrames.add(atlas.findRegion("front3"));
@@ -119,3 +114,5 @@ public class Player {
 
     }
 }
+
+
