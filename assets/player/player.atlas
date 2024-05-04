@@ -1,0 +1,11 @@
+player.png
+size:128,32
+repeat:none
+back
+bounds:20,2,16,16
+front
+bounds:56,2,16,16
+left
+bounds:38,2,16,16
+right
+bounds:2,2,16,16

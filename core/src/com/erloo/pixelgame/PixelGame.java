@@ -4,12 +4,12 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
@@ -17,17 +17,19 @@ public class PixelGame extends ApplicationAdapter {
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer renderer;
 	private Player player;
-	private Texture playerTexture;
+	private TextureAtlas playerAtlas;
 	private float mapWidth;
 	private float mapHeight;
+	private float viewportWidth = 200;
+	private float viewportHeight = 150;
 
 	@Override
 	public void create() {
 		float w = Gdx.graphics.getWidth();
 		float h = Gdx.graphics.getHeight();
 
-		camera = new OrthographicCamera(w, h);
-		camera.position.set(w / 2, h / 2, 0);
+		camera = new OrthographicCamera(viewportWidth, viewportHeight);
+		camera.position.set(viewportWidth / 2, viewportHeight / 2, 0);
 		camera.update();
 
 		batch = new SpriteBatch();
@@ -35,8 +37,8 @@ public class PixelGame extends ApplicationAdapter {
 		map = new TmxMapLoader().load("map.tmx");
 		renderer = new OrthogonalTiledMapRenderer(map);
 
-		playerTexture = new Texture("player.png"); // load the player texture
-		player = new Player(playerTexture);
+		playerAtlas = new TextureAtlas("player/player.atlas"); // load the player atlas
+		player = new Player(playerAtlas);
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
@@ -52,16 +54,16 @@ public class PixelGame extends ApplicationAdapter {
 		float cameraX = player.getPosition().x;
 		float cameraY = player.getPosition().y;
 
-		if (cameraX < camera.viewportWidth / 2) {
-			cameraX = camera.viewportWidth / 2;
-		} else if (cameraX > mapWidth - camera.viewportWidth / 2) {
-			cameraX = mapWidth - camera.viewportWidth / 2;
+		if (cameraX < viewportWidth / 2) {
+			cameraX = viewportWidth / 2;
+		} else if (cameraX > mapWidth - viewportWidth / 2) {
+			cameraX = mapWidth - viewportWidth / 2;
 		}
 
-		if (cameraY < camera.viewportHeight / 2) {
-			cameraY = camera.viewportHeight / 2;
-		} else if (cameraY > mapHeight - camera.viewportHeight / 2) {
-			cameraY = mapHeight - camera.viewportHeight / 2;
+		if (cameraY < viewportHeight / 2) {
+			cameraY = viewportHeight / 2;
+		} else if (cameraY > mapHeight - viewportHeight / 2) {
+			cameraY = mapHeight - viewportHeight / 2;
 		}
 
 		camera.position.set(cameraX, cameraY, 0);
@@ -81,5 +83,6 @@ public class PixelGame extends ApplicationAdapter {
 		batch.dispose();
 		map.dispose();
 		renderer.dispose();
+		playerAtlas.dispose();
 	}
 }
