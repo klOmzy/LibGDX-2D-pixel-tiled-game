@@ -70,32 +70,36 @@ public class Player {
     public void update(float delta, float mapWidth, float mapHeight) {
 
         boolean isMoving = false;
+        float speed = 100 * delta;
+
+        float moveX = 0;
+        float moveY = 0;
 
         if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            if (!isCellOccupied(position.x, position.y + 100 * delta)) {
+            if (!isCellOccupied(position.x, position.y + speed)) {
                 currentAnimation = backAnimation;
-                position.y += 100 * delta;
+                moveY += speed;
                 isMoving = true;
             }
         }
         if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            if (!isCellOccupied(position.x, position.y - 100 * delta)) {
+            if (!isCellOccupied(position.x, position.y - speed)) {
                 currentAnimation = frontAnimation;
-                position.y -= 100 * delta;
+                moveY -= speed;
                 isMoving = true;
             }
         }
         if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            if (!isCellOccupied(position.x - 100 * delta, position.y)) {
+            if (!isCellOccupied(position.x - speed, position.y)) {
                 currentAnimation = leftAnimation;
-                position.x -= 100 * delta;
+                moveX -= speed;
                 isMoving = true;
             }
         }
         if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            if (!isCellOccupied(position.x + 100 * delta, position.y)) {
+            if (!isCellOccupied(position.x + speed, position.y)) {
                 currentAnimation = rightAnimation;
-                position.x += 100 * delta;
+                moveX += speed;
                 isMoving = true;
             }
         }
@@ -112,6 +116,16 @@ public class Player {
         if (position.y > mapHeight - 16) {
             position.y = mapHeight - 16;
         }
+
+        // Normalize diagonal movement
+        if (moveX != 0 && moveY != 0) {
+            float norm = (float) Math.sqrt(2) / 2;
+            moveX *= norm;
+            moveY *= norm;
+        }
+
+        position.x += moveX;
+        position.y += moveY;
 
         if (isMoving) {
             // Если игрок движется, то обновляем позицию анимации
