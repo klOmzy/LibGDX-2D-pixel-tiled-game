@@ -22,11 +22,15 @@ public class PixelGame extends ApplicationAdapter {
 	private float mapHeight;
 	private float viewportWidth = 200;
 	private float viewportHeight = 150;
+	private TiledMapTileLayer collisionLayer;
+
 
 	@Override
 	public void create() {
 		float w = Gdx.graphics.getWidth();
 		float h = Gdx.graphics.getHeight();
+		map = new TmxMapLoader().load("map.tmx");
+		collisionLayer = (TiledMapTileLayer) map.getLayers().get("CollisionLayer");
 
 		camera = new OrthographicCamera(viewportWidth, viewportHeight);
 		camera.position.set(viewportWidth / 2, viewportHeight / 2, 0);
@@ -34,11 +38,11 @@ public class PixelGame extends ApplicationAdapter {
 
 		batch = new SpriteBatch();
 
-		map = new TmxMapLoader().load("map.tmx");
+
 		renderer = new OrthogonalTiledMapRenderer(map);
 
 		playerAtlas = new TextureAtlas("player/player.atlas"); // load the player atlas
-		player = new Player(playerAtlas);
+		player = new Player(playerAtlas, collisionLayer, camera);
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
@@ -50,6 +54,7 @@ public class PixelGame extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		player.update(Gdx.graphics.getDeltaTime(), mapWidth, mapHeight);
+		player.centerCamera();
 
 		float cameraX = player.getPosition().x;
 		float cameraY = player.getPosition().y;
