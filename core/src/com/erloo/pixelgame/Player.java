@@ -2,8 +2,6 @@ package com.erloo.pixelgame;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -19,24 +17,25 @@ public class Player {
     private Animation<TextureRegion> currentAnimation;
     private float stateTime;
     private TextureRegion currentFrame; // Добавляем переменную currentFrame
-    private TiledMapTileLayer collisionLayer;
     private OrthographicCamera camera;
+    private Array<TiledMapTileLayer> collisionLayers;
 
-    public Player(TextureAtlas atlas, TiledMapTileLayer collisionLayer, OrthographicCamera camera) {
+    public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
-        this.collisionLayer = collisionLayer;
+        this.collisionLayers = collisionLayers;
         this.camera = camera;
         position = new Vector2(0, 0);
+        this.position.set(spawnX, spawnY);
+
         stateTime = 0;
 
         createAnimations();
-        currentAnimation = leftAnimation;
+        currentAnimation = frontAnimation;
 
         // Вычисляем ширину и высоту текстуры персонажа
         TextureRegion currentFrame = frontAnimation.getKeyFrame(0); // Выбираем любой регион из анимации, чтобы получить размер текстуры
         float textureWidth = currentFrame.getRegionWidth();
         float textureHeight = currentFrame.getRegionHeight();
-
 
         // Вычисляем смещение позиции персонажа относительно центра его текстуры
         float offsetX = (textureWidth - 16) / 2f; // 16 - это ширина тайла, которую мы использовали при создании карты
@@ -46,6 +45,7 @@ public class Player {
         position.x -= offsetX;
         position.y -= offsetY;
     }
+
     public void centerCamera() {
         float cameraX = position.x + currentFrame.getRegionWidth() / 2f;
         float cameraY = position.y + currentFrame.getRegionHeight() / 2f;
@@ -54,17 +54,22 @@ public class Player {
     }
 
     public boolean isCellOccupied(float x, float y) {
-        int cellX = (int) (x / 16);
-        int cellY = (int) (y / 16);
-        TiledMapTileLayer.Cell cell = collisionLayer.getCell(cellX, cellY);
-        return cell != null && cell.getTile() != null;
+        for (TiledMapTileLayer layer : collisionLayers) {
+            int cellX = (int) (x / 16);
+            int cellY = (int) (y / 16);
+            if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
+                TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
+                if (cell != null && cell.getTile() != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-
 
     public void update(float delta, float mapWidth, float mapHeight) {
 
         boolean isMoving = false;
-
 
         if (Gdx.input.isKeyPressed(Input.Keys.W)) {
             if (!isCellOccupied(position.x, position.y + 100 * delta)) {
@@ -94,7 +99,6 @@ public class Player {
                 isMoving = true;
             }
         }
-
 
         if (position.x < 0) {
             position.x = 0;
@@ -165,6 +169,5 @@ public class Player {
         frontFrames.add(atlas.findRegion("front2"));
         frontFrames.add(atlas.findRegion("front3"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
-
     }
 }
