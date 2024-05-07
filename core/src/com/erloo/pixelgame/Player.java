@@ -23,6 +23,7 @@ public class Player {
     private Animation<TextureRegion> previousAnimation;
     private Array<Animation<TextureRegion>> attackAnimations;
     private int attackAnimationIndex;
+    private float attackCooldown; // New variable to keep track of the attack cooldown
 
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
@@ -31,6 +32,7 @@ public class Player {
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);
 
+        attackCooldown = 0; // Initialize the attack cooldown to 0
         stateTime = 0;
 
         attackAnimations = new Array<>();
@@ -129,7 +131,16 @@ public class Player {
                 attackAnimations.add(frontAttackAnimation);
             }
 
-            // Stop the player's movement when attacking
+            attackCooldown = 0.30f; // Set the attack cooldown to 0.3 seconds
+
+            // Reset the walking animation
+            stateTime = 0;
+            isMoving = false;
+        }
+
+        // Update the attack cooldown
+        if (attackCooldown > 0) {
+            attackCooldown -= delta;
             moveX = 0;
             moveY = 0;
         }
@@ -240,28 +251,24 @@ public class Player {
         leftAttackFrames.add(atlas.findRegion("leftattack3"));
         leftAttackFrames.add(atlas.findRegion("leftattack4"));
         leftAttackAnimation = new Animation<>(0.1f, leftAttackFrames, Animation.PlayMode.NORMAL);
-        attackAnimations.add(leftAttackAnimation);
 
         Array<TextureAtlas.AtlasRegion> rightAttackFrames = new Array<>();
         rightAttackFrames.add(atlas.findRegion("rightattack2"));
         rightAttackFrames.add(atlas.findRegion("rightattack3"));
         rightAttackFrames.add(atlas.findRegion("rightattack4"));
         rightAttackAnimation = new Animation<>(0.1f, rightAttackFrames, Animation.PlayMode.NORMAL);
-        attackAnimations.add(rightAttackAnimation);
 
         Array<TextureAtlas.AtlasRegion> backAttackFrames = new Array<>();
         backAttackFrames.add(atlas.findRegion("backattack2"));
         backAttackFrames.add(atlas.findRegion("backattack3"));
         backAttackFrames.add(atlas.findRegion("backattack4"));
         backAttackAnimation = new Animation<>(0.1f, backAttackFrames, Animation.PlayMode.NORMAL);
-        attackAnimations.add(backAttackAnimation);
 
         Array<TextureAtlas.AtlasRegion> frontAttackFrames = new Array<>();
         frontAttackFrames.add(atlas.findRegion("frontattack2"));
         frontAttackFrames.add(atlas.findRegion("frontattack3"));
         frontAttackFrames.add(atlas.findRegion("frontattack4"));
         frontAttackAnimation = new Animation<>(0.1f, frontAttackFrames, Animation.PlayMode.NORMAL);
-        attackAnimations.add(frontAttackAnimation);
 
     }
 }
