@@ -19,6 +19,10 @@ public class Player {
     private TextureRegion currentFrame; // Добавляем переменную currentFrame
     private OrthographicCamera camera;
     private Array<TiledMapTileLayer> collisionLayers;
+    private boolean isAttacking;
+    private Animation<TextureRegion> previousAnimation;
+    private Array<Animation<TextureRegion>> attackAnimations;
+    private int attackAnimationIndex;
 
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
@@ -29,7 +33,11 @@ public class Player {
 
         stateTime = 0;
 
+        attackAnimations = new Array<>();
+        attackAnimationIndex = 0;
+
         createAnimations();
+        previousAnimation = frontAnimation;
         currentAnimation = frontAnimation;
 
         // Вычисляем ширину и высоту текстуры персонажа
@@ -104,6 +112,57 @@ public class Player {
             }
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            isAttacking = true;
+            previousAnimation = currentAnimation;
+            attackAnimationIndex = 0;
+
+            // Clear the attackAnimations array and add the appropriate attack animations based on the current direction
+            attackAnimations.clear();
+            if (previousAnimation == leftAnimation) {
+                attackAnimations.add(leftAttackAnimation);
+            } else if (previousAnimation == rightAnimation) {
+                attackAnimations.add(rightAttackAnimation);
+            } else if (previousAnimation == backAnimation) {
+                attackAnimations.add(backAttackAnimation);
+            } else if (previousAnimation == frontAnimation) {
+                attackAnimations.add(frontAttackAnimation);
+            }
+
+            // Stop the player's movement when attacking
+            moveX = 0;
+            moveY = 0;
+        }
+
+        if (isAttacking) {
+            currentAnimation = attackAnimations.get(attackAnimationIndex);
+
+            stateTime += delta;
+            currentFrame = currentAnimation.getKeyFrame(stateTime, false);
+
+            if (currentAnimation.isAnimationFinished(stateTime)) {
+                attackAnimationIndex++;
+
+                if (attackAnimationIndex >= attackAnimations.size) {
+                    isAttacking = false;
+                    currentAnimation = previousAnimation;
+                    stateTime = 0;
+                }
+            }
+        } else {
+            // The player is not attacking, so update the animation based on movement
+            if (isMoving) {
+                stateTime += delta;
+                currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+            } else {
+                stateTime = 0;
+                currentFrame = currentAnimation.getKeyFrame(0, false);
+            }
+        }
+
+        position.x += moveX;
+        position.y += moveY;
+
         if (position.x < 0) {
             position.x = 0;
         }
@@ -123,19 +182,6 @@ public class Player {
             moveX *= norm;
             moveY *= norm;
         }
-
-        position.x += moveX;
-        position.y += moveY;
-
-        if (isMoving) {
-            // Если игрок движется, то обновляем позицию анимации
-            stateTime += delta;
-            currentFrame = currentAnimation.getKeyFrame(stateTime, true);
-        } else {
-            // Если игрок не движется, то отображаем первый кадр анимации
-            stateTime = 0;
-            currentFrame = currentAnimation.getKeyFrame(0, false);
-        }
     }
 
     public void render(SpriteBatch batch) {
@@ -154,6 +200,11 @@ public class Player {
     private Animation<TextureRegion> rightAnimation;
     private Animation<TextureRegion> backAnimation;
     private Animation<TextureRegion> frontAnimation;
+    private Animation<TextureRegion> leftAttackAnimation;
+    private Animation<TextureRegion> rightAttackAnimation;
+    private Animation<TextureRegion> backAttackAnimation;
+    private Animation<TextureRegion> frontAttackAnimation;
+
 
     private void createAnimations() {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
@@ -183,5 +234,34 @@ public class Player {
         frontFrames.add(atlas.findRegion("front3"));
         frontFrames.add(atlas.findRegion("front4"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
+
+        Array<TextureAtlas.AtlasRegion> leftAttackFrames = new Array<>();
+        leftAttackFrames.add(atlas.findRegion("leftattack2"));
+        leftAttackFrames.add(atlas.findRegion("leftattack3"));
+        leftAttackFrames.add(atlas.findRegion("leftattack4"));
+        leftAttackAnimation = new Animation<>(0.1f, leftAttackFrames, Animation.PlayMode.NORMAL);
+        attackAnimations.add(leftAttackAnimation);
+
+        Array<TextureAtlas.AtlasRegion> rightAttackFrames = new Array<>();
+        rightAttackFrames.add(atlas.findRegion("rightattack2"));
+        rightAttackFrames.add(atlas.findRegion("rightattack3"));
+        rightAttackFrames.add(atlas.findRegion("rightattack4"));
+        rightAttackAnimation = new Animation<>(0.1f, rightAttackFrames, Animation.PlayMode.NORMAL);
+        attackAnimations.add(rightAttackAnimation);
+
+        Array<TextureAtlas.AtlasRegion> backAttackFrames = new Array<>();
+        backAttackFrames.add(atlas.findRegion("backattack2"));
+        backAttackFrames.add(atlas.findRegion("backattack3"));
+        backAttackFrames.add(atlas.findRegion("backattack4"));
+        backAttackAnimation = new Animation<>(0.1f, backAttackFrames, Animation.PlayMode.NORMAL);
+        attackAnimations.add(backAttackAnimation);
+
+        Array<TextureAtlas.AtlasRegion> frontAttackFrames = new Array<>();
+        frontAttackFrames.add(atlas.findRegion("frontattack2"));
+        frontAttackFrames.add(atlas.findRegion("frontattack3"));
+        frontAttackFrames.add(atlas.findRegion("frontattack4"));
+        frontAttackAnimation = new Animation<>(0.1f, frontAttackFrames, Animation.PlayMode.NORMAL);
+        attackAnimations.add(frontAttackAnimation);
+
     }
 }

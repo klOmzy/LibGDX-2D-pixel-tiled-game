@@ -61,7 +61,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		renderer = new OrthogonalTiledMapRenderer(map);
 
-		playerAtlas = new TextureAtlas("player/player.atlas"); // load the player atlas
+		playerAtlas = new TextureAtlas("player/player1.atlas"); // load the player atlas
 		player = new Player(playerAtlas, collisionLayers, camera, spawnX, spawnY);
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
