@@ -10,8 +10,11 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.damage.Damageable;
+import com.erloo.pixelgame.damage.Healable;
+import com.erloo.pixelgame.damage.Health;
 
-public class Player {
+public class Player implements Damageable, Healable {
     private Vector2 position;
     private TextureAtlas atlas;
     private Animation<TextureRegion> currentAnimation;
@@ -24,6 +27,7 @@ public class Player {
     private Array<Animation<TextureRegion>> attackAnimations;
     private int attackAnimationIndex;
     private float attackCooldown; // New variable to keep track of the attack cooldown
+    private Health health;
 
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
@@ -31,6 +35,7 @@ public class Player {
         this.camera = camera;
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);
+        health = new Health(100); // устанавливаем максимальное здоровье
 
         attackCooldown = 0; // Initialize the attack cooldown to 0
         stateTime = 0;
@@ -57,12 +62,29 @@ public class Player {
     }
 
     public void centerCamera() {
-        float cameraX = position.x + currentFrame.getRegionWidth() / 2f;
-        float cameraY = position.y + currentFrame.getRegionHeight() / 2f;
+        float cameraX = position.x;
+        float cameraY = position.y;
         camera.position.set(cameraX, cameraY, 0);
         camera.update();
     }
 
+    @Override
+    public void takeDamage(int damage) {
+        health.takeDamage(damage);
+    }
+
+    @Override
+    public void heal(int amount) {
+        health.heal(amount);
+    }
+
+    public int getHealth() {
+        return health.getCurrentHealth();
+    }
+
+    public int getMaxHealth() {
+        return health.getMaxHealth();
+    }
     public boolean isCellOccupied(float x, float y) {
         for (TiledMapTileLayer layer : collisionLayers) {
             int cellX = (int) (x / 16);
@@ -114,7 +136,7 @@ public class Player {
             }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
             isAttacking = true;
             previousAnimation = currentAnimation;
             attackAnimationIndex = 0;
@@ -173,19 +195,6 @@ public class Player {
 
         position.x += moveX;
         position.y += moveY;
-
-        if (position.x < 0) {
-            position.x = 0;
-        }
-        if (position.x > mapWidth - 16) {
-            position.x = mapWidth - 16;
-        }
-        if (position.y < 0) {
-            position.y = 0;
-        }
-        if (position.y > mapHeight - 16) {
-            position.y = mapHeight - 16;
-        }
 
         // Normalize diagonal movement
         if (moveX != 0 && moveY != 0) {
