@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapLayer;
@@ -19,6 +20,7 @@ import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.HealthBar;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
+import com.badlogic.gdx.Input;
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
@@ -36,8 +38,10 @@ public class PixelGame extends ApplicationAdapter {
 	private float spawnX;
 	private float spawnY;
 	private HealthBar healthBar;
-	private BitmapFont font;
+	private BitmapFont healthFont;
 	private ShapeRenderer shapeRenderer;
+	private BitmapFont deathFont;
+
 
 	@Override
 	public void create() {
@@ -90,13 +94,21 @@ public class PixelGame extends ApplicationAdapter {
 		parameter.color = Color.WHITE;
 
 		// Генерируем BitmapFont из файла TTF
-		font = generator.generateFont(parameter);
+		healthFont = generator.generateFont(parameter);
+
+		// Создаем новый FreeTypeFontParameter с большим размером шрифта для "YOU DIED!"
+		FreeTypeFontParameter deathFontParameter = new FreeTypeFontParameter();
+		deathFontParameter.size = 48; // Увеличиваем размер шрифта до 32
+		deathFontParameter.color = Color.RED;
+
+		// Генерируем новый BitmapFont для "YOU DIED!"
+		deathFont = generator.generateFont(deathFontParameter);
 
 		// Освобождаем ресурсы генератора шрифтов
 		generator.dispose();
 
 		shapeRenderer = new ShapeRenderer();
-		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), font);
+		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), healthFont);
 	}
 
 	@Override
@@ -132,13 +144,29 @@ public class PixelGame extends ApplicationAdapter {
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 		healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
 		shapeRenderer.end();
+		// Проверка урона (Потом удалить)
+		if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
+			player.takeDamage(10);
+		}
+		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+			player.takeDamage(100);
+		}
 
 		batch.begin();
 		player.render(batch);
 		batch.end();
 
 		uiBatch.begin();
-		healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+		if (player.isDead()) {
+			deathFont.setColor(Color.RED);
+			Gdx.gl.glClearColor(0, 0, 0, 1);
+			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+			GlyphLayout layout = new GlyphLayout(deathFont, "YOU DIED!");
+			deathFont.draw(uiBatch, layout, Gdx.graphics.getWidth() / 2 - layout.width / 2, Gdx.graphics.getHeight() / 2);
+		}
+		else {
+			healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+		}
 		uiBatch.end();
 	}
 
@@ -148,6 +176,7 @@ public class PixelGame extends ApplicationAdapter {
 		map.dispose();
 		renderer.dispose();
 		playerAtlas.dispose();
-		font.dispose();
+		healthFont.dispose();
+		deathFont.dispose(); // Добавляем dispose для deathFont
 	}
 }

@@ -2,6 +2,7 @@ package com.erloo.pixelgame;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -28,9 +29,22 @@ public class Player implements Damageable, Healable {
     private int attackAnimationIndex;
     private float attackCooldown; // New variable to keep track of the attack cooldown
     private Health health;
+    private boolean isDead;
+    private float deathTimer;
+    private float spawnX;
+    private float spawnY;
+    private boolean isBlinking;
+    private float blinkTimer;
+    private float blinkDuration; // Длительность мигания (например, 0.1 секунды)
+    private float blinkInterval; // Интервал между миганиями (например, 0.1 секунды)
+    private boolean isInvulnerable;
+    private float invulnerabilityTimer;
+    private float invulnerabilityDuration = 1f;
 
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
+        this.spawnX = spawnX;
+        this.spawnY = spawnY;
         this.collisionLayers = collisionLayers;
         this.camera = camera;
         position = new Vector2(0, 0);
@@ -70,7 +84,24 @@ public class Player implements Damageable, Healable {
 
     @Override
     public void takeDamage(int damage) {
-        health.takeDamage(damage);
+        if (!isInvulnerable) {
+            health.takeDamage(damage);
+            isBlinking = true;
+            blinkTimer = 0;
+            isInvulnerable = true;
+            invulnerabilityTimer = 0;
+            if (health.getCurrentHealth() == 0) {
+                position.set(spawnX, spawnY);
+                currentAnimation = frontAnimation;
+                stateTime = 0; // Сбросить stateTime, чтобы начать анимацию с начала
+                currentFrame = currentAnimation.getKeyFrame(stateTime, true); // Обновить currentFrame для новой анимации
+                isDead = true;
+                deathTimer = 3; // Показывать сообщение о смерти в течение 3 секунд
+            }
+        }
+    }
+    public boolean isDead() {
+        return isDead;
     }
 
     @Override
@@ -107,100 +138,117 @@ public class Player implements Damageable, Healable {
         float moveX = 0;
         float moveY = 0;
 
-        if (Gdx.input.isKeyPressed(Input.Keys.W)) {
-            if (!isCellOccupied(position.x, position.y + speed)) {
-                currentAnimation = backAnimation;
-                moveY += speed;
-                isMoving = true;
-            }
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.S)) {
-            if (!isCellOccupied(position.x, position.y - speed)) {
-                currentAnimation = frontAnimation;
-                moveY -= speed;
-                isMoving = true;
-            }
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            if (!isCellOccupied(position.x - speed, position.y)) {
-                currentAnimation = leftAnimation;
-                moveX -= speed;
-                isMoving = true;
-            }
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            if (!isCellOccupied(position.x + speed, position.y)) {
-                currentAnimation = rightAnimation;
-                moveX += speed;
-                isMoving = true;
+        if (isInvulnerable) {
+            invulnerabilityTimer += delta;
+            if (invulnerabilityTimer >= invulnerabilityDuration) {
+                isInvulnerable = false;
             }
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
-            isAttacking = true;
-            previousAnimation = currentAnimation;
-            attackAnimationIndex = 0;
-
-            // Clear the attackAnimations array and add the appropriate attack animations based on the current direction
-            attackAnimations.clear();
-            if (previousAnimation == leftAnimation) {
-                attackAnimations.add(leftAttackAnimation);
-            } else if (previousAnimation == rightAnimation) {
-                attackAnimations.add(rightAttackAnimation);
-            } else if (previousAnimation == backAnimation) {
-                attackAnimations.add(backAttackAnimation);
-            } else if (previousAnimation == frontAnimation) {
-                attackAnimations.add(frontAttackAnimation);
-            }
-
-            attackCooldown = 0.30f; // Set the attack cooldown to 0.3 seconds
-
-            // Reset the walking animation
-            stateTime = 0;
-            isMoving = false;
-        }
-
-        // Update the attack cooldown
-        if (attackCooldown > 0) {
-            attackCooldown -= delta;
-            moveX = 0;
-            moveY = 0;
-        }
-
-        if (isAttacking) {
-            currentAnimation = attackAnimations.get(attackAnimationIndex);
-
-            stateTime += delta;
-            currentFrame = currentAnimation.getKeyFrame(stateTime, false);
-
-            if (currentAnimation.isAnimationFinished(stateTime)) {
-                attackAnimationIndex++;
-
-                if (attackAnimationIndex >= attackAnimations.size) {
-                    isAttacking = false;
-                    currentAnimation = previousAnimation;
-                    stateTime = 0;
+        if (!isDead) {
+            if (Gdx.input.isKeyPressed(Input.Keys.W)) {
+                if (!isCellOccupied(position.x, position.y + speed)) {
+                    currentAnimation = backAnimation;
+                    moveY += speed;
+                    isMoving = true;
                 }
             }
-        } else {
-            // The player is not attacking, so update the animation based on movement
-            if (isMoving) {
-                stateTime += delta;
-                currentFrame = currentAnimation.getKeyFrame(stateTime, true);
-            } else {
-                stateTime = 0;
-                currentFrame = currentAnimation.getKeyFrame(0, false);
+            if (Gdx.input.isKeyPressed(Input.Keys.S)) {
+                if (!isCellOccupied(position.x, position.y - speed)) {
+                    currentAnimation = frontAnimation;
+                    moveY -= speed;
+                    isMoving = true;
+                }
             }
-        }
+            if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+                if (!isCellOccupied(position.x - speed, position.y)) {
+                    currentAnimation = leftAnimation;
+                    moveX -= speed;
+                    isMoving = true;
+                }
+            }
+            if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+                if (!isCellOccupied(position.x + speed, position.y)) {
+                    currentAnimation = rightAnimation;
+                    moveX += speed;
+                    isMoving = true;
+                }
+            }
 
-        position.x += moveX;
-        position.y += moveY;
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE) && attackCooldown <= 0) {
+                isAttacking = true;
+                previousAnimation = currentAnimation;
+                attackAnimationIndex = 0;
 
-        // Normalize diagonal movement
-        if (moveX != 0 && moveY != 0) {
-            float norm = (float) Math.sqrt(2) / 2;
-            moveX *= norm;
-            moveY *= norm;
+                // Clear the attackAnimations array and add the appropriate attack animations based on the current direction
+                attackAnimations.clear();
+                if (previousAnimation == leftAnimation) {
+                    attackAnimations.add(leftAttackAnimation);
+                } else if (previousAnimation == rightAnimation) {
+                    attackAnimations.add(rightAttackAnimation);
+                } else if (previousAnimation == backAnimation) {
+                    attackAnimations.add(backAttackAnimation);
+                } else if (previousAnimation == frontAnimation) {
+                    attackAnimations.add(frontAttackAnimation);
+                }
+
+                attackCooldown = 0.30f; // Set the attack cooldown to 0.3 seconds
+
+                // Reset the walking animation
+                stateTime = 0;
+                isMoving = false;
+            }
+
+            // Update the attack cooldown
+            if (attackCooldown > 0) {
+                attackCooldown -= delta;
+                moveX = 0;
+                moveY = 0;
+            }
+
+            health.regenerate(delta);
+
+            if (isAttacking) {
+                currentAnimation = attackAnimations.get(attackAnimationIndex);
+
+                stateTime += delta;
+                currentFrame = currentAnimation.getKeyFrame(stateTime, false);
+
+                if (currentAnimation.isAnimationFinished(stateTime)) {
+                    attackAnimationIndex++;
+
+                    if (attackAnimationIndex >= attackAnimations.size) {
+                        isAttacking = false;
+                        currentAnimation = previousAnimation;
+                        stateTime = 0;
+                    }
+                }
+            } else {
+                // The player is not attacking, so update the animation based on movement
+                if (isMoving) {
+                    stateTime += delta;
+                    currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+                } else {
+                    stateTime = 0;
+                    currentFrame = currentAnimation.getKeyFrame(0, false);
+                }
+            }
+
+            position.x += moveX;
+            position.y += moveY;
+
+            // Normalize diagonal movement
+            if (moveX != 0 && moveY != 0) {
+                float norm = (float) Math.sqrt(2) / 2;
+                moveX *= norm;
+                moveY *= norm;
+            }
+        } else {
+            deathTimer -= delta;
+            if (deathTimer <= 0) {
+                isDead = false;
+                health.heal(100); // Восстанавливаем здоровье до 100 HP
+            }
         }
     }
 
@@ -209,8 +257,30 @@ public class Player implements Damageable, Healable {
         float height = currentFrame.getRegionHeight();
         float halfWidth = width / 2f;
         float halfHeight = height / 2f;
+        blinkDuration = 0.1f;
+        blinkInterval = 0.1f;
+
+        if (isBlinking) {
+            blinkTimer += Gdx.graphics.getDeltaTime();
+            if (blinkTimer > blinkDuration * 8) { // Умножим blinkDuration на количество миганий (в этом случае 5)
+                isBlinking = false;
+                // Сбросить цвет batch в исходное состояние
+                batch.setColor(Color.WHITE);
+            } else if (Math.floor(blinkTimer / (blinkDuration + blinkInterval)) % 2 == 0) { // Проверим, следует ли отображать красный цвет или белый
+                // Установить красный цвет для мигания
+                batch.setColor(Color.RED);
+            } else {
+                // Сбросить цвет batch в исходное состояние
+                batch.setColor(Color.WHITE);
+            }
+        } else {
+            // Убедитесь, что цвет batch сброшен в исходное состояние, когда нет мигания
+            batch.setColor(Color.WHITE);
+        }
+
         batch.draw(currentFrame, position.x - halfWidth, position.y - halfHeight, halfWidth, halfHeight, width, height, 1, 1, 0);
     }
+
 
     public Vector2 getPosition() {
         return position;
