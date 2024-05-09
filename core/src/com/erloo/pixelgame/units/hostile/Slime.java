@@ -1,6 +1,7 @@
 package com.erloo.pixelgame.units.hostile;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -8,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.Damageable;
+import com.badlogic.gdx.math.Rectangle;
 
 public class Slime extends Enemy implements Damageable {
     private Vector2 position;
@@ -18,27 +20,40 @@ public class Slime extends Enemy implements Damageable {
     private float viewRadius;
     private boolean isChasing;
     private Vector2 target;
+    private int health;
+    private boolean isDead;
+    private boolean isBlinking;
+    private float blinkTimer;
+    private float blinkDuration; // Длительность мигания (например, 0.1 секунды)
+    private float blinkInterval; // Интервал между миганиями (например, 0.1 секунды)
+    private boolean isInvulnerable;
+    private float invulnerabilityTimer;
+    private float invulnerabilityDuration;
+    private Vector2 spawnPosition;
+
 
     public Slime(TextureAtlas atlas, int damage, Vector2 position) {
         super(damage);
         this.position = position;
+        this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
         this.atlas = atlas;
         viewRadius = 100f; // Задайте нужное значение радиуса обзора
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-    }
+        health = 30; // Задайте начальное значение здоровья
 
-    public void checkTargetInView(Vector2 target) {
-        if (position.dst(target) <= viewRadius) {
-            isChasing = true;
-            this.target = target;
-        } else {
-            isChasing = false;
-        }
     }
 
     public void update(float delta) {
+        invulnerabilityDuration = 0.5f;
+        if (isInvulnerable) {
+            invulnerabilityTimer += delta;
+            if (invulnerabilityTimer >= invulnerabilityDuration) {
+                isInvulnerable = false;
+            }
+        }
+
         if (isChasing) {
             Vector2 direction = target.cpy().sub(position).nor();
             float speed = 50f; // Set the desired speed
@@ -67,6 +82,48 @@ public class Slime extends Enemy implements Damageable {
         }
     }
 
+    public void render(SpriteBatch slimeBatch) {
+        stateTime += Gdx.graphics.getDeltaTime();
+        currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+
+        int slimeWidth = currentFrame.getRegionWidth();
+        int slimeHeight = currentFrame.getRegionHeight();
+        blinkDuration = 0.02f;
+        blinkInterval = 0.1f;
+
+        if (isBlinking) {
+            blinkTimer += Gdx.graphics.getDeltaTime();
+            if (blinkTimer > blinkDuration * 8) { // Умножим blinkDuration на количество миганий (в этом случае 5)
+                isBlinking = false;
+                // Сбросить цвет batch в исходное состояние
+                slimeBatch.setColor(Color.WHITE);
+            } else if (Math.floor(blinkTimer / (blinkDuration + blinkInterval)) % 2 == 0) { // Проверим, следует ли отображать красный цвет или белый
+                // Установить красный цвет для мигания
+                slimeBatch.setColor(Color.RED);
+            } else {
+                // Сбросить цвет batch в исходное состояние
+                slimeBatch.setColor(Color.WHITE);
+            }
+        } else {
+            // Убедитесь, что цвет batch сброшен в исходное состояние, когда нет мигания
+            slimeBatch.setColor(Color.WHITE);
+        }
+        slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
+    }
+
+    public void checkTargetInView(Vector2 target) {
+        if (position.dst(target) <= viewRadius) {
+            isChasing = true;
+            this.target = target;
+        } else {
+            isChasing = false;
+        }
+    }
+
+    public Rectangle getBoundingRectangle() {
+        return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
+    }
+
     private Animation<TextureRegion> leftAnimation;
     private Animation<TextureRegion> rightAnimation;
     private Animation<TextureRegion> backAnimation;
@@ -93,20 +150,33 @@ public class Slime extends Enemy implements Damageable {
         frontFrames.add(atlas.findRegion("front2"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
     }
-
-    public void render(SpriteBatch batch) {
-        stateTime += Gdx.graphics.getDeltaTime();
-        currentFrame = currentAnimation.getKeyFrame(stateTime, true);
-
-        int slimeWidth = currentFrame.getRegionWidth();
-        int slimeHeight = currentFrame.getRegionHeight();
-
-        batch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
+    public Vector2 getSpawnPosition() {
+        return spawnPosition;
     }
-
-
+    public boolean isMoving() {
+        return isChasing;
+    }
+    public void stopMoving() {
+        isChasing = false;
+    }
     @Override
     public void takeDamage(int damage) {
-        // Реализация получения урона
+        if (!isInvulnerable) {
+            health -= damage; // Уменьшаем здоровье на полученный урон
+            isBlinking = true;
+            blinkTimer = 0;
+            isInvulnerable = true;
+            invulnerabilityTimer = 0;
+            if (health <= 0) {
+                System.out.println("Slime is dead");
+                isDead = true;
+            }
+        }
+    }
+    public boolean isDead() {
+        return isDead;
+    }
+    public int getHealth() {
+        return health;
     }
 }

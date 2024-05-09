@@ -16,6 +16,8 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.Damager;
 import com.erloo.pixelgame.damage.HealthBar;
@@ -24,6 +26,8 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFont
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
 import com.erloo.pixelgame.units.hostile.Slime;
+
+import java.util.HashMap;
 
 
 public class PixelGame extends ApplicationAdapter {
@@ -46,7 +50,8 @@ public class PixelGame extends ApplicationAdapter {
 	private ShapeRenderer shapeRenderer;
 	private BitmapFont deathFont;
 	private Array<Damager> enemies;
-
+	private SpriteBatch slimeBatch; // добавляем новый SpriteBatch
+	private HashMap<Slime, Float> slimeDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 
 	@Override
 	public void create() {
@@ -69,6 +74,7 @@ public class PixelGame extends ApplicationAdapter {
 		camera.update();
 
 		batch = new SpriteBatch();
+		slimeBatch = new SpriteBatch(); // инициализируем новый SpriteBatch
 		uiBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 
 		// Устанавливаем размеры камеры в соответствии с размерами окна
@@ -91,6 +97,19 @@ public class PixelGame extends ApplicationAdapter {
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
 
 		enemies = new Array<Damager>();
+
+		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
+		MapLayer spawnLayer = map.getLayers().get("Spawn");
+		for (MapObject object : spawnLayer.getObjects()) {
+			if (object.getName().startsWith("Slime")) {
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
+				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+				Slime slime = new Slime(slimes, 10, spawnPosition);
+				enemies.add(slime);
+			}
+		}
+
 		// Создаем генератор шрифтов из файла TTF
 		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/SedanSC-Regular.ttf"));
 
@@ -112,12 +131,10 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Освобождаем ресурсы генератора шрифтов
 		generator.dispose();
-		spawnEnemies();
 
 		shapeRenderer = new ShapeRenderer();
 		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), healthFont);
 	}
-
 	@Override
 	public void render() {
 		Gdx.gl.glClearColor(1, 1, 1, 1);
@@ -143,7 +160,19 @@ public class PixelGame extends ApplicationAdapter {
 
 		camera.position.set(cameraX, cameraY, 0);
 		camera.update();
+
 		batch.setProjectionMatrix(camera.combined);
+		slimeBatch.setProjectionMatrix(camera.combined);
+
+		Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
+		for (Slime slime : temporarySlimes) {
+			slimeDeathTimes.put(slime, slimeDeathTimes.get(slime) + Gdx.graphics.getDeltaTime());
+			if (slimeDeathTimes.get(slime) >= 5) { // если прошло 5 секунд после смерти слайма
+				slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
+				spawnSlime(slime.getSpawnPosition()); // респавним слайма
+			}
+		}
+
 
 		renderer.setView(camera);
 		renderer.render();
@@ -158,18 +187,23 @@ public class PixelGame extends ApplicationAdapter {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
 			player.takeDamage(100);
 		}
-
 		batch.begin();
 		player.render(batch);
+		batch.end();
+
+		// заменяем batch на slimeBatch
+		slimeBatch.begin();
 		for (Damager enemy : enemies) {
 			if (enemy instanceof Slime) {
 				Slime slime = (Slime) enemy;
 				slime.update(Gdx.graphics.getDeltaTime());
 				slime.checkTargetInView(player.getPosition());
-				slime.render(batch);
+				slime.render(slimeBatch); // заменяем batch на slimeBatch
 			}
 		}
-		batch.end();
+		slimeBatch.end();
+
+		checkCollisions(); // добавьте эту строку
 
 		uiBatch.begin();
 		if (player.isDead()) {
@@ -183,17 +217,47 @@ public class PixelGame extends ApplicationAdapter {
 			healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
 		}
 		uiBatch.end();
+
+		for (int i = enemies.size - 1; i >= 0; i--) {
+			Damager enemy = enemies.get(i);
+			if (enemy instanceof Slime && ((Slime) enemy).isDead()) {
+				enemies.removeIndex(i);
+				slimeDeathTimes.put((Slime) enemy, 0f); // добавляем время смерти слайма в список
+			}
+		}
+
 	}
-	private void spawnEnemies() {
-		TextureAtlas enemiesAtlas = new TextureAtlas("enemies/slime.atlas");
-		MapLayer spawnLayer = map.getLayers().get("Spawn");
-		for (MapObject object : spawnLayer.getObjects()) {
-			if (object.getName().startsWith("Slime")) {
-				float spawnX = object.getProperties().get("x", Float.class);
-				float spawnY = object.getProperties().get("y", Float.class);
-				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Slime slime = new Slime(enemiesAtlas, 10, spawnPosition);
-				enemies.add(slime);
+
+	private void spawnSlime(Vector2 spawnPosition) {
+		System.out.println("Spawning slime at " + spawnPosition);
+		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
+		Slime slime = new Slime(slimes, 10, spawnPosition);
+		enemies.add(slime);
+		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
+	}
+
+	private void checkCollisions() {
+		Rectangle playerRect = player.getBoundingRectangle();
+		for (Damager enemy : enemies) {
+			if (enemy instanceof Slime) {
+				Slime slime = (Slime) enemy;
+				Rectangle slimeRect = slime.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, slimeRect)) {
+					// Коллизия обнаружена
+					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+						// Если клавиша space нажата, вызываем метод takeDamage для слайма
+						slime.takeDamage(player.getDamage());
+					} else {
+						player.takeDamage(slime.getDamage());
+						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+						if (player.isMoving()) {
+							player.stopMoving();
+						}
+						if (slime.isMoving()) {
+							slime.stopMoving();
+						}
+					}
+				}
 			}
 		}
 	}
@@ -206,5 +270,6 @@ public class PixelGame extends ApplicationAdapter {
 		playerAtlas.dispose();
 		healthFont.dispose();
 		deathFont.dispose(); // Добавляем dispose для deathFont
+		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
 	}
 }

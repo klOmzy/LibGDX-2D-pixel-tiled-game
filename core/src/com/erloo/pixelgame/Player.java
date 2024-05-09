@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.Damageable;
@@ -39,7 +40,10 @@ public class Player implements Damageable, Healable {
     private float blinkInterval; // Интервал между миганиями (например, 0.1 секунды)
     private boolean isInvulnerable;
     private float invulnerabilityTimer;
-    private float invulnerabilityDuration = 1f;
+    private float invulnerabilityDuration;
+    private int damage; // добавляем переменную damage
+    private float moveX;
+    private float moveY;
 
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
@@ -47,6 +51,7 @@ public class Player implements Damageable, Healable {
         this.spawnY = spawnY;
         this.collisionLayers = collisionLayers;
         this.camera = camera;
+        this.damage = 10; // инициализируем переменную damage значением 10 (например)
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);
         health = new Health(100); // устанавливаем максимальное здоровье
@@ -75,68 +80,14 @@ public class Player implements Damageable, Healable {
         position.y -= offsetY;
     }
 
-    public void centerCamera() {
-        float cameraX = position.x;
-        float cameraY = position.y;
-        camera.position.set(cameraX, cameraY, 0);
-        camera.update();
-    }
-
-    @Override
-    public void takeDamage(int damage) {
-        if (!isInvulnerable) {
-            health.takeDamage(damage);
-            isBlinking = true;
-            blinkTimer = 0;
-            isInvulnerable = true;
-            invulnerabilityTimer = 0;
-            if (health.getCurrentHealth() == 0) {
-                position.set(spawnX, spawnY);
-                currentAnimation = frontAnimation;
-                stateTime = 0; // Сбросить stateTime, чтобы начать анимацию с начала
-                currentFrame = currentAnimation.getKeyFrame(stateTime, true); // Обновить currentFrame для новой анимации
-                isDead = true;
-                deathTimer = 3; // Показывать сообщение о смерти в течение 3 секунд
-            }
-        }
-    }
-    public boolean isDead() {
-        return isDead;
-    }
-
-    @Override
-    public void heal(int amount) {
-        health.heal(amount);
-    }
-
-    public int getHealth() {
-        return health.getCurrentHealth();
-    }
-
-    public int getMaxHealth() {
-        return health.getMaxHealth();
-    }
-    public boolean isCellOccupied(float x, float y) {
-        for (TiledMapTileLayer layer : collisionLayers) {
-            int cellX = (int) (x / 16);
-            int cellY = (int) (y / 16);
-            if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
-                TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
-                if (cell != null && cell.getTile() != null) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     public void update(float delta, float mapWidth, float mapHeight) {
 
         boolean isMoving = false;
         float speed = 100 * delta;
+        invulnerabilityDuration = 1f;
 
-        float moveX = 0;
-        float moveY = 0;
+        moveX = 0;
+        moveY = 0;
 
         if (isInvulnerable) {
             invulnerabilityTimer += delta;
@@ -257,7 +208,7 @@ public class Player implements Damageable, Healable {
         float height = currentFrame.getRegionHeight();
         float halfWidth = width / 2f;
         float halfHeight = height / 2f;
-        blinkDuration = 0.1f;
+        blinkDuration = 0.02f;
         blinkInterval = 0.1f;
 
         if (isBlinking) {
@@ -277,11 +228,80 @@ public class Player implements Damageable, Healable {
             // Убедитесь, что цвет batch сброшен в исходное состояние, когда нет мигания
             batch.setColor(Color.WHITE);
         }
-
         batch.draw(currentFrame, position.x - halfWidth, position.y - halfHeight, halfWidth, halfHeight, width, height, 1, 1, 0);
     }
 
+    public void centerCamera() {
+        float cameraX = position.x;
+        float cameraY = position.y;
+        camera.position.set(cameraX, cameraY, 0);
+        camera.update();
+    }
 
+    @Override
+    public void takeDamage(int damage) {
+        if (!isInvulnerable) {
+            health.takeDamage(damage);
+            isBlinking = true;
+            blinkTimer = 0;
+            isInvulnerable = true;
+            invulnerabilityTimer = 0;
+            if (health.getCurrentHealth() == 0) {
+                position.set(spawnX, spawnY);
+                currentAnimation = frontAnimation;
+                stateTime = 0; // Сбросить stateTime, чтобы начать анимацию с начала
+                currentFrame = currentAnimation.getKeyFrame(stateTime, true); // Обновить currentFrame для новой анимации
+                isDead = true;
+                deathTimer = 3; // Показывать сообщение о смерти в течение 3 секунд
+            }
+        }
+    }
+
+    public int getDamage() {
+        return damage; // предполагая, что damage - это переменная, содержащая количество урона, которое игрок наносит
+    }
+
+
+    public boolean isDead() {
+        return isDead;
+    }
+
+    @Override
+    public void heal(int amount) {
+        health.heal(amount);
+    }
+
+    public int getHealth() {
+        return health.getCurrentHealth();
+    }
+
+    public int getMaxHealth() {
+        return health.getMaxHealth();
+    }
+    public boolean isCellOccupied(float x, float y) {
+        for (TiledMapTileLayer layer : collisionLayers) {
+            int cellX = (int) (x / 16);
+            int cellY = (int) (y / 16);
+            if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
+                TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
+                if (cell != null && cell.getTile() != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public Rectangle getBoundingRectangle() {
+        return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
+    }
+    public boolean isMoving() {
+        return Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.D);
+    }
+    public void stopMoving() {
+        moveX = 0;
+        moveY = 0;
+    }
     public Vector2 getPosition() {
         return position;
     }
