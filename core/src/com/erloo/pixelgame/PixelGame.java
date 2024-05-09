@@ -17,10 +17,14 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.damage.Damager;
 import com.erloo.pixelgame.damage.HealthBar;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.math.Vector2;
+import com.erloo.pixelgame.units.hostile.Slime;
+
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
@@ -41,6 +45,7 @@ public class PixelGame extends ApplicationAdapter {
 	private BitmapFont healthFont;
 	private ShapeRenderer shapeRenderer;
 	private BitmapFont deathFont;
+	private Array<Damager> enemies;
 
 
 	@Override
@@ -85,6 +90,7 @@ public class PixelGame extends ApplicationAdapter {
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
 
+		enemies = new Array<Damager>();
 		// Создаем генератор шрифтов из файла TTF
 		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/SedanSC-Regular.ttf"));
 
@@ -106,6 +112,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Освобождаем ресурсы генератора шрифтов
 		generator.dispose();
+		spawnEnemies();
 
 		shapeRenderer = new ShapeRenderer();
 		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), healthFont);
@@ -154,6 +161,14 @@ public class PixelGame extends ApplicationAdapter {
 
 		batch.begin();
 		player.render(batch);
+		for (Damager enemy : enemies) {
+			if (enemy instanceof Slime) {
+				Slime slime = (Slime) enemy;
+				slime.update(Gdx.graphics.getDeltaTime());
+				slime.checkTargetInView(player.getPosition());
+				slime.render(batch);
+			}
+		}
 		batch.end();
 
 		uiBatch.begin();
@@ -168,6 +183,19 @@ public class PixelGame extends ApplicationAdapter {
 			healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
 		}
 		uiBatch.end();
+	}
+	private void spawnEnemies() {
+		TextureAtlas enemiesAtlas = new TextureAtlas("enemies/slime.atlas");
+		MapLayer spawnLayer = map.getLayers().get("Spawn");
+		for (MapObject object : spawnLayer.getObjects()) {
+			if (object.getName().startsWith("Slime")) {
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
+				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+				Slime slime = new Slime(enemiesAtlas, 10, spawnPosition);
+				enemies.add(slime);
+			}
+		}
 	}
 
 	@Override
