@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.Damageable;
@@ -30,13 +31,14 @@ public class Slime extends Enemy implements Damageable {
     private float invulnerabilityTimer;
     private float invulnerabilityDuration;
     private Vector2 spawnPosition;
+    private Array<TiledMapTileLayer> collisionLayers;
 
-
-    public Slime(TextureAtlas atlas, int damage, Vector2 position) {
+    public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers) {
         super(damage);
         this.position = position;
         this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
         this.atlas = atlas;
+        this.collisionLayers = collisionLayers;
         viewRadius = 100f; // Задайте нужное значение радиуса обзора
         isChasing = false;
         createAnimations();
@@ -58,8 +60,13 @@ public class Slime extends Enemy implements Damageable {
             Vector2 direction = target.cpy().sub(position).nor();
             float speed = 50f; // Set the desired speed
 
-            position.x += direction.x * speed * delta;
-            position.y += direction.y * speed * delta;
+            float newX = position.x + direction.x * speed * delta;
+            float newY = position.y + direction.y * speed * delta;
+
+            if (!isCellOccupied(newX, newY)) {
+                position.x = newX;
+                position.y = newY;
+            }
 
             // Update the current animation based on the direction of movement
             if (direction.x > 0 && direction.y > 0) {
@@ -110,7 +117,19 @@ public class Slime extends Enemy implements Damageable {
         }
         slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
     }
-
+    public boolean isCellOccupied(float x, float y) {
+        for (TiledMapTileLayer layer : collisionLayers) {
+            int cellX = (int) (x / 16);
+            int cellY = (int) (y / 16);
+            if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
+                TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
+                if (cell != null && cell.getTile() != null) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public void checkTargetInView(Vector2 target) {
         if (position.dst(target) <= viewRadius) {
             isChasing = true;

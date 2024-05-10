@@ -105,7 +105,7 @@ public class PixelGame extends ApplicationAdapter {
 				float spawnX = object.getProperties().get("x", Float.class);
 				float spawnY = object.getProperties().get("y", Float.class);
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Slime slime = new Slime(slimes, 10, spawnPosition);
+				Slime slime = new Slime(slimes, 10, spawnPosition, collisionLayers);
 				enemies.add(slime);
 			}
 		}
@@ -231,7 +231,7 @@ public class PixelGame extends ApplicationAdapter {
 	private void spawnSlime(Vector2 spawnPosition) {
 		System.out.println("Spawning slime at " + spawnPosition);
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
-		Slime slime = new Slime(slimes, 10, spawnPosition);
+		Slime slime = new Slime(slimes, 10, spawnPosition, collisionLayers);
 		enemies.add(slime);
 		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
 	}
