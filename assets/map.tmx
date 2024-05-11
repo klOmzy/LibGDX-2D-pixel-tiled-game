@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="64" height="48" tilewidth="16" tileheight="16" infinite="0" nextlayerid="26" nextobjectid="22">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="64" height="48" tilewidth="16" tileheight="16" infinite="0" nextlayerid="26" nextobjectid="25">
  <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="1755" columns="27">
   <image source="sprite.png" width="432" height="1040"/>
  </tileset>
@@ -384,6 +384,7 @@
   <object id="18" name="Slime1Spawn" x="678" y="278" width="9.33333" height="10.6667"/>
   <object id="19" name="Slime2Spawn" x="414.5" y="150.5" width="11" height="11.5"/>
   <object id="21" name="Slime3Spawn" x="658.5" y="522" width="13" height="12"/>
+  <object id="24" name="Ghost1Spawn" x="496" y="405" width="12.5" height="13"/>
  </objectgroup>
  <layer id="6" name="water" width="64" height="48">
   <properties>

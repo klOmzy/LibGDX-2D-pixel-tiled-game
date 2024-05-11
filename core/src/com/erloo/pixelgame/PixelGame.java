@@ -25,6 +25,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
+import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
 
 import java.util.HashMap;
@@ -51,7 +52,9 @@ public class PixelGame extends ApplicationAdapter {
 	private BitmapFont deathFont;
 	private Array<Damager> enemies;
 	private SpriteBatch slimeBatch; // добавляем новый SpriteBatch
+	private SpriteBatch ghostBatch; // Новый SpriteBatch для рендера призраков
 	private HashMap<Slime, Float> slimeDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
+	private HashMap<Ghost, Float> ghostDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 
 	@Override
 	public void create() {
@@ -76,6 +79,7 @@ public class PixelGame extends ApplicationAdapter {
 		batch = new SpriteBatch();
 		slimeBatch = new SpriteBatch(); // инициализируем новый SpriteBatch
 		uiBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
+		ghostBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 
 		// Устанавливаем размеры камеры в соответствии с размерами окна
 		camera.setToOrtho(false, viewportWidth, viewportHeight);
@@ -105,11 +109,21 @@ public class PixelGame extends ApplicationAdapter {
 				float spawnX = object.getProperties().get("x", Float.class);
 				float spawnY = object.getProperties().get("y", Float.class);
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Slime slime = new Slime(slimes, 10, spawnPosition, collisionLayers);
+				Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers);
 				enemies.add(slime);
 			}
 		}
 
+		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
+		for (MapObject object : spawnLayer.getObjects()) {
+			if (object.getName().startsWith("Ghost")) {
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
+				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+				Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers);
+				enemies.add(ghost);
+			}
+		}
 		// Создаем генератор шрифтов из файла TTF
 		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/SedanSC-Regular.ttf"));
 
@@ -163,6 +177,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		batch.setProjectionMatrix(camera.combined);
 		slimeBatch.setProjectionMatrix(camera.combined);
+		ghostBatch.setProjectionMatrix(camera.combined);
 
 		Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
 		for (Slime slime : temporarySlimes) {
@@ -173,6 +188,14 @@ public class PixelGame extends ApplicationAdapter {
 			}
 		}
 
+		Array<Ghost> temporaryGhost = new Array<Ghost>(ghostDeathTimes.keySet().toArray(new Ghost[0]));
+		for (Ghost ghost : temporaryGhost) {
+			ghostDeathTimes.put(ghost, ghostDeathTimes.get(ghost) + Gdx.graphics.getDeltaTime());
+			if (ghostDeathTimes.get(ghost) >= 5) { // если прошло 5 секунд после смерти слайма
+				ghostDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
+				spawnSlime(ghost.getSpawnPosition()); // респавним слайма
+			}
+		}
 
 		renderer.setView(camera);
 		renderer.render();
@@ -184,7 +207,7 @@ public class PixelGame extends ApplicationAdapter {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
 			player.takeDamage(10);
 		}
-		if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+		else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
 			player.takeDamage(100);
 		}
 		batch.begin();
@@ -202,6 +225,17 @@ public class PixelGame extends ApplicationAdapter {
 			}
 		}
 		slimeBatch.end();
+
+		ghostBatch.begin();
+		for (Damager enemy : enemies) {
+			if (enemy instanceof Ghost) {
+				Ghost ghost = (Ghost) enemy;
+				ghost.update(Gdx.graphics.getDeltaTime());
+				ghost.checkTargetInView(player.getPosition());
+				ghost.render(ghostBatch); // Используем ghostBatch для рендера призраков
+			}
+		}
+		ghostBatch.end();
 
 		checkCollisions(); // добавьте эту строку
 
@@ -224,6 +258,10 @@ public class PixelGame extends ApplicationAdapter {
 				enemies.removeIndex(i);
 				slimeDeathTimes.put((Slime) enemy, 0f); // добавляем время смерти слайма в список
 			}
+			else if (enemy instanceof Ghost && ((Ghost) enemy).isDead()) {
+				enemies.removeIndex(i);
+				ghostDeathTimes.put((Ghost) enemy, 0f); // добавляем время смерти слайма в список
+			}
 		}
 
 	}
@@ -234,6 +272,14 @@ public class PixelGame extends ApplicationAdapter {
 		Slime slime = new Slime(slimes, 10, spawnPosition, collisionLayers);
 		enemies.add(slime);
 		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
+	}
+
+	private void spawnGhost(Vector2 spawnPosition) {
+		System.out.println("Spawning ghost at " + spawnPosition);
+		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
+		Ghost ghost = new Ghost(ghosts, 10, spawnPosition, collisionLayers);
+		enemies.add(ghost);
+		slimeDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
 	}
 
 	private void checkCollisions() {
@@ -253,8 +299,28 @@ public class PixelGame extends ApplicationAdapter {
 						if (player.isMoving()) {
 							player.stopMoving();
 						}
-						if (slime.isMoving()) {
+						else if (slime.isMoving()) {
 							slime.stopMoving();
+						}
+					}
+				}
+			}
+			if (enemy instanceof Ghost) {
+				Ghost ghost = (Ghost) enemy;
+				Rectangle slimeRect = ghost.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, slimeRect)) {
+					// Коллизия обнаружена
+					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+						// Если клавиша space нажата, вызываем метод takeDamage для слайма
+						ghost.takeDamage(player.getDamage());
+					} else {
+						player.takeDamage(ghost.getDamage());
+						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+						if (player.isMoving()) {
+							player.stopMoving();
+						}
+						else if (ghost.isMoving()) {
+							ghost.stopMoving();
 						}
 					}
 				}
@@ -271,5 +337,6 @@ public class PixelGame extends ApplicationAdapter {
 		healthFont.dispose();
 		deathFont.dispose(); // Добавляем dispose для deathFont
 		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
+		ghostBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
 	}
 }

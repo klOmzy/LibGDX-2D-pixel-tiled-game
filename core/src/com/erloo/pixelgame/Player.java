@@ -83,7 +83,7 @@ public class Player implements Damageable, Healable {
     public void update(float delta, float mapWidth, float mapHeight) {
 
         boolean isMoving = false;
-        float speed = 100 * delta;
+        float speed = 80 * delta;
         invulnerabilityDuration = 1f;
 
         moveX = 0;
