@@ -10,9 +10,13 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.AStar;
+import com.erloo.pixelgame.Node;
 import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damageable;
 import com.badlogic.gdx.math.Rectangle;
+
+import java.util.List;
 
 public class Slime extends Enemy implements Damageable {
     private Vector2 position;
@@ -35,19 +39,29 @@ public class Slime extends Enemy implements Damageable {
     private Vector2 spawnPosition;
     private Array<TiledMapTileLayer> collisionLayers;
     private boolean isCollidingWithPlayer;
-    public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers) {
+    private Player player;
+    private AStar aStar;
+    private boolean[][] grid;
+    private int tileSize;
+
+    public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Player player, AStar aStar, boolean[][] grid, int tileSize) {
         super(damage);
         this.position = position;
-        this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
+        this.spawnPosition = position.cpy();
         this.atlas = atlas;
         this.collisionLayers = collisionLayers;
-        viewRadius = 50f; // Задайте нужное значение радиуса обзора
+        this.player = player;
+        this.aStar = aStar;
+        this.grid = grid;
+        this.tileSize = tileSize;
+        viewRadius = 100f;
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-        health = 30; // Задайте начальное значение здоровья
-
+        health = 30;
     }
+
+
 
     public void update(float delta) {
         invulnerabilityDuration = 0.5f;
@@ -59,63 +73,14 @@ public class Slime extends Enemy implements Damageable {
         }
         if (!isCollidingWithPlayer) {
             if (isChasing) {
-                Vector2 direction = target.cpy().sub(position).nor();
-                float speed = 40f; // Set the desired speed
+                Vector2 targetPosition = player.getPosition();
+                Node targetNode = convertToGridCoordinates(targetPosition);
+                List<Node> path = aStar.findPath(convertToGridCoordinates(position), targetNode, grid);
 
-                float newX = position.x + direction.x * speed * delta;
-                float newY = position.y + direction.y * speed * delta;
-
-                if (!isCellOccupied(newX, newY)) {
-                    position.x = newX;
-                    position.y = newY;
-                } else {
-                    System.out.println("Slime hit an obstacle!"); // Add this line
-                }
-
-                // Update the current animation based on the direction of movement
-                if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                    if (direction.x > 0) {
-                        currentAnimation = rightAnimation;
-                    } else if (direction.x < 0) {
-                        currentAnimation = leftAnimation;
-                    }
-                } else {
-                    if (direction.y > 0) {
-                        currentAnimation = backAnimation;
-                    } else if (direction.y < 0) {
-                        currentAnimation = frontAnimation;
-                    }
-                }
-            } else {
-                if (!position.epsilonEquals(spawnPosition, 1f)) { // Add this check
-                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 40f; // Set the desired speed
-
-                    float newX = position.x + direction.x * speed * delta;
-                    float newY = position.y + direction.y * speed * delta;
-
-                    if (!isCellOccupied(newX, newY)) {
-                        position.x = newX;
-                        position.y = newY;
-                    }
-
-                    // Update the current animation based on the direction of movement
-                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                        if (direction.x > 0) {
-                            currentAnimation = rightAnimation;
-                        } else if (direction.x < 0) {
-                            currentAnimation = leftAnimation;
-                        }
-                    } else {
-                        if (direction.y > 0) {
-                            currentAnimation = backAnimation;
-                        } else if (direction.y < 0) {
-                            currentAnimation = frontAnimation;
-                        }
-                    }
-                } else {
-                    // Slime has reached the spawn point, stop moving
-                    currentAnimation = frontAnimation; // Set the default animation
+                if (path != null && !path.isEmpty()) {
+                    Node nextNode = path.get(1); // the first node in the path is the slime's current position
+                    Vector2 nextPosition = convertToWorldCoordinates(nextNode);
+                    moveTowards(nextPosition, delta);
                 }
             }
         }
@@ -158,6 +123,51 @@ public class Slime extends Enemy implements Damageable {
             isCollidingWithPlayer = false;
         }
     }
+    public Node convertToGridCoordinates(Vector2 position) {
+        int x = (int) (position.x / tileSize);
+        int y = (int) (position.y / tileSize);
+        return new Node(x, y);
+    }
+
+    public Vector2 convertToWorldCoordinates(Node node) {
+        float x = node.x * tileSize;
+        float y = node.y * tileSize;
+        return new Vector2(x, y);
+    }
+
+    public void moveTowards(Vector2 target, float delta) {
+        Vector2 direction = target.cpy().sub(position).nor();
+        float speed = 40f;
+
+        float newX = position.x + direction.x * speed * delta;
+        float newY = position.y + direction.y * speed * delta;
+
+        position.x = newX;
+        position.y = newY;
+
+//        if (!isCellOccupied(newX, newY)) {
+//            position.x = newX;
+//            position.y = newY;
+//        } else {
+//            System.out.println("Slime hit an obstacle!");
+//        }
+
+        // Update the current animation based on the direction of movement
+        if (Math.abs(direction.x) > Math.abs(direction.y)) {
+            if (direction.x > 0) {
+                currentAnimation = rightAnimation;
+            } else if (direction.x < 0) {
+                currentAnimation = leftAnimation;
+            }
+        } else {
+            if (direction.y > 0) {
+                currentAnimation = backAnimation;
+            } else if (direction.y < 0) {
+                currentAnimation = frontAnimation;
+            }
+        }
+    }
+
     public boolean isCellOccupied(float x, float y) {
         for (TiledMapTileLayer layer : collisionLayers) {
             int cellX = (int) (x / 16);
@@ -213,9 +223,6 @@ public class Slime extends Enemy implements Damageable {
     }
     public Vector2 getSpawnPosition() {
         return spawnPosition;
-    }
-    public boolean isMoving() {
-        return isChasing;
     }
     public void stopMoving() {
         isChasing = false;

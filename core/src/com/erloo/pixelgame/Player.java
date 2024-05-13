@@ -44,7 +44,7 @@ public class Player implements Damageable, Healable {
     private int damage; // добавляем переменную damage
     private float moveX;
     private float moveY;
-
+    private Vector2 previousPosition = new Vector2();
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
         this.spawnX = spawnX;
@@ -87,7 +87,7 @@ public class Player implements Damageable, Healable {
         return position.y;
     }
     public void update(float delta, float mapWidth, float mapHeight) {
-
+        previousPosition.set(position);
         boolean isMoving = false;
         float speed = 80 * delta;
         invulnerabilityDuration = 1f;
@@ -243,7 +243,6 @@ public class Player implements Damageable, Healable {
         camera.position.set(cameraX, cameraY, 0);
         camera.update();
     }
-
     @Override
     public void takeDamage(int damage) {
         if (!isInvulnerable) {
@@ -266,7 +265,6 @@ public class Player implements Damageable, Healable {
     public int getDamage() {
         return damage; // предполагая, что damage - это переменная, содержащая количество урона, которое игрок наносит
     }
-
 
     public boolean isDead() {
         return isDead;
@@ -300,9 +298,6 @@ public class Player implements Damageable, Healable {
 
     public Rectangle getBoundingRectangle() {
         return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
-    }
-    public boolean isMoving() {
-        return Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.D);
     }
     public void stopMoving() {
         moveX = 0;

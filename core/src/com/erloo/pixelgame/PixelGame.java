@@ -54,11 +54,17 @@ public class PixelGame extends ApplicationAdapter {
 	private SpriteBatch ghostBatch; // Новый SpriteBatch для рендера призраков
 	private HashMap<Slime, Float> slimeDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 	private HashMap<Ghost, Float> ghostDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
+	boolean[][] grid;
+	int gridWidth;
+	int gridHeight;
+	int tileSize;
+	private AStar aStar;
 
 	@Override
 	public void create() {
 		map = new TmxMapLoader().load("map.tmx");
 		collisionLayers = new Array<>();
+
 		for (MapLayer layer : map.getLayers()) {
 			if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
 				boolean isCollisionLayer = (boolean) layer.getProperties().get("collision");
@@ -66,9 +72,6 @@ public class PixelGame extends ApplicationAdapter {
 					collisionLayers.add((TiledMapTileLayer) layer);
 				}
 			}
-		}
-		if (collisionLayers.size == 0) {
-			throw new RuntimeException("Collision layers not found");
 		}
 
 		camera = new OrthographicCamera(viewportWidth, viewportHeight);
@@ -98,17 +101,23 @@ public class PixelGame extends ApplicationAdapter {
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
+		AStar aStar = new AStar();
 
+		// Create the grid
+		createGrid();
+
+		// Initialize the grid based on the collision layers of the map
+		initializeGrid();
 		enemies = new Array<Damager>();
 
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
 		MapLayer spawnLayer = map.getLayers().get("Spawn");
 		for (MapObject object : spawnLayer.getObjects()) {
 			if (object.getName().startsWith("Slime")) {
-				float spawnX = object.getProperties().get("x", Float.class);
-				float spawnY = object.getProperties().get("y", Float.class);
+				float spawnX = object.getProperties().get("x", Float.class) + 8;
+				float spawnY = object.getProperties().get("y", Float.class) + 8;
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers);
+				Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, player, aStar, grid, tileSize);
 				enemies.add(slime);
 			}
 		}
@@ -116,8 +125,8 @@ public class PixelGame extends ApplicationAdapter {
 		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
 		for (MapObject object : spawnLayer.getObjects()) {
 			if (object.getName().startsWith("Ghost")) {
-				float spawnX = object.getProperties().get("x", Float.class);
-				float spawnY = object.getProperties().get("y", Float.class);
+				float spawnX = object.getProperties().get("x", Float.class) + 8;
+				float spawnY = object.getProperties().get("y", Float.class) + 8;
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
 				Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers);
 				enemies.add(ghost);
@@ -266,11 +275,48 @@ public class PixelGame extends ApplicationAdapter {
 		}
 
 	}
+	public void createGrid() {
+		tileSize = map.getProperties().get("tilewidth", Integer.class);
+		gridWidth = map.getProperties().get("width", Integer.class);
+		gridHeight = map.getProperties().get("height", Integer.class);
+		grid = new boolean[gridWidth][gridHeight];
+	}
+
+	public void initializeGrid() {
+		for (TiledMapTileLayer layer : collisionLayers) {
+			for (int x = 0; x < layer.getWidth(); x++) {
+				for (int y = 0; y < layer.getHeight(); y++) {
+					TiledMapTileLayer.Cell cell = layer.getCell(x, y);
+					if (cell != null && cell.getTile() != null) {
+						// Check if the "collision" property is defined
+						Boolean isUnitsCollision = (Boolean) cell.getTile().getProperties().get("collision");
+						if (isUnitsCollision != null) {
+							// The "collision" property is defined, so use it to set the grid value
+							grid[x][y] = !isUnitsCollision;
+						} else {
+							// The "collision" property is not defined, so assume that the tile is not collidable
+							grid[x][y] = false;
+						}
+					} else {
+						// The cell is empty, so assume that it is not collidable
+						grid[x][y] = true;
+					}
+				}
+			}
+		}
+		for (int y = 0; y < grid.length; y++) {
+			for (int x = 0; x < grid[y].length; x++) {
+				System.out.print(grid[y][x] ? "O " : "X ");
+			}
+			System.out.println();
+		}
+	}
+
 
 	private void spawnSlime(Vector2 spawnPosition) {
 		System.out.println("Spawning slime at " + spawnPosition);
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
-		Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers);
+		Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, player, aStar, grid, tileSize);
 		enemies.add(slime);
 		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
 	}
