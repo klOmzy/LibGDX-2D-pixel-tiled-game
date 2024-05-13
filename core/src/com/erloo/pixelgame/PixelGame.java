@@ -27,7 +27,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
 import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
-
 import java.util.HashMap;
 
 
@@ -299,9 +298,11 @@ public class PixelGame extends ApplicationAdapter {
 						slime.stopMoving();
 					} else {
 						player.takeDamage(slime.getDamage());
+
 						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
 						player.stopMoving();
 						slime.stopMoving();
+
 					}
 				}
 			}
@@ -313,15 +314,13 @@ public class PixelGame extends ApplicationAdapter {
 					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 						// Если клавиша space нажата, вызываем метод takeDamage для слайма
 						ghost.takeDamage(player.getDamage());
+						player.stopMoving();
+						ghost.stopMoving();
 					} else {
 						player.takeDamage(ghost.getDamage());
 						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						if (player.isMoving()) {
-							player.stopMoving();
-						}
-						else if (ghost.isMoving()) {
-							ghost.stopMoving();
-						}
+						player.stopMoving();
+						ghost.stopMoving();
 					}
 				}
 			}
