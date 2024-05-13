@@ -79,7 +79,13 @@ public class Player implements Damageable, Healable {
         position.x -= offsetX;
         position.y -= offsetY;
     }
+    public float getX() {
+        return position.x;
+    }
 
+    public float getY() {
+        return position.y;
+    }
     public void update(float delta, float mapWidth, float mapHeight) {
 
         boolean isMoving = false;

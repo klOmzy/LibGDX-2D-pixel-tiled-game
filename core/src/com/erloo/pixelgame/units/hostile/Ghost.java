@@ -7,9 +7,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damageable;
 
 public class Ghost extends Enemy implements Damageable {
@@ -32,14 +34,14 @@ public class Ghost extends Enemy implements Damageable {
     private float invulnerabilityDuration;
     private Vector2 spawnPosition;
     private Array<TiledMapTileLayer> collisionLayers;
-
+    private boolean isCollidingWithPlayer;
     public Ghost(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers) {
         super(damage);
         this.position = position;
         this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
         this.atlas = atlas;
         this.collisionLayers = collisionLayers;
-        viewRadius = 100f; // Задайте нужное значение радиуса обзора
+        viewRadius = 50f; // Задайте нужное значение радиуса обзора
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
@@ -54,31 +56,65 @@ public class Ghost extends Enemy implements Damageable {
                 isInvulnerable = false;
             }
         }
+        if (!isCollidingWithPlayer) {
+            if (isChasing) {
+                Vector2 direction = target.cpy().sub(position).nor();
+                float speed = 40f; // Set the desired speed
 
-        if (isChasing) {
-            Vector2 direction = target.cpy().sub(position).nor();
-            float speed = 60f; // Set the desired speed
+                float newX = position.x + direction.x * speed * delta;
+                float newY = position.y + direction.y * speed * delta;
 
-            float newX = position.x + direction.x * speed * delta;
-            float newY = position.y + direction.y * speed * delta;
+                if (!isCellOccupied(newX, newY)) {
+                    position.x = newX;
+                    position.y = newY;
+                } else {
+                    System.out.println("Slime hit an obstacle!"); // Add this line
+                }
 
-            if (!isCellOccupied(newX, newY)) {
-                position.x = newX;
-                position.y = newY;
-            }
-
-            // Update the current animation based on the direction of movement
-            if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                if (direction.x > 0) {
-                    currentAnimation = rightAnimation;
-                } else if (direction.x < 0) {
-                    currentAnimation = leftAnimation;
+                // Update the current animation based on the direction of movement
+                if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                    if (direction.x > 0) {
+                        currentAnimation = rightAnimation;
+                    } else if (direction.x < 0) {
+                        currentAnimation = leftAnimation;
+                    }
+                } else {
+                    if (direction.y > 0) {
+                        currentAnimation = backAnimation;
+                    } else if (direction.y < 0) {
+                        currentAnimation = frontAnimation;
+                    }
                 }
             } else {
-                if (direction.y > 0) {
-                    currentAnimation = backAnimation;
-                } else if (direction.y < 0) {
-                    currentAnimation = frontAnimation;
+                if (!position.epsilonEquals(spawnPosition, 1f)) { // Add this check
+                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
+                    float speed = 40f; // Set the desired speed
+
+                    float newX = position.x + direction.x * speed * delta;
+                    float newY = position.y + direction.y * speed * delta;
+
+                    if (!isCellOccupied(newX, newY)) {
+                        position.x = newX;
+                        position.y = newY;
+                    }
+
+                    // Update the current animation based on the direction of movement
+                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                        if (direction.x > 0) {
+                            currentAnimation = rightAnimation;
+                        } else if (direction.x < 0) {
+                            currentAnimation = leftAnimation;
+                        }
+                    } else {
+                        if (direction.y > 0) {
+                            currentAnimation = backAnimation;
+                        } else if (direction.y < 0) {
+                            currentAnimation = frontAnimation;
+                        }
+                    }
+                } else {
+                    // Slime has reached the spawn point, stop moving
+                    currentAnimation = frontAnimation; // Set the default animation
                 }
             }
         }
@@ -112,7 +148,15 @@ public class Ghost extends Enemy implements Damageable {
         }
         ghostBatch.draw(currentFrame, position.x - ghostWidth / 2, position.y - ghostHeight / 2);
     }
-
+    public void checkCollisionWithPlayer(Player player) {
+        Rectangle slimeRect = getBoundingRectangle();
+        Rectangle playerRect = player.getBoundingRectangle();
+        if (Intersector.overlaps(slimeRect, playerRect)) {
+            isCollidingWithPlayer = true;
+        } else {
+            isCollidingWithPlayer = false;
+        }
+    }
     public boolean isCellOccupied(float x, float y) {
         for (TiledMapTileLayer layer : collisionLayers) {
             int cellX = (int) (x / 16);
@@ -165,6 +209,7 @@ public class Ghost extends Enemy implements Damageable {
         frontFrames.add(atlas.findRegion("front1"));
         frontFrames.add(atlas.findRegion("front2"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
+        currentFrame = frontAnimation.getKeyFrame(0);
     }
 
     public Vector2 getSpawnPosition() {

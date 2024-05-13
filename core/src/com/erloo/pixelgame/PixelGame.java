@@ -182,7 +182,7 @@ public class PixelGame extends ApplicationAdapter {
 		Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
 		for (Slime slime : temporarySlimes) {
 			slimeDeathTimes.put(slime, slimeDeathTimes.get(slime) + Gdx.graphics.getDeltaTime());
-			if (slimeDeathTimes.get(slime) >= 5) { // если прошло 5 секунд после смерти слайма
+			if (slimeDeathTimes.get(slime) >= 10) { // если прошло 5 секунд после смерти слайма
 				slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
 				spawnSlime(slime.getSpawnPosition()); // респавним слайма
 			}
@@ -191,9 +191,9 @@ public class PixelGame extends ApplicationAdapter {
 		Array<Ghost> temporaryGhost = new Array<Ghost>(ghostDeathTimes.keySet().toArray(new Ghost[0]));
 		for (Ghost ghost : temporaryGhost) {
 			ghostDeathTimes.put(ghost, ghostDeathTimes.get(ghost) + Gdx.graphics.getDeltaTime());
-			if (ghostDeathTimes.get(ghost) >= 5) { // если прошло 5 секунд после смерти слайма
+			if (ghostDeathTimes.get(ghost) >= 10) { // если прошло 5 секунд после смерти слайма
 				ghostDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
-				spawnSlime(ghost.getSpawnPosition()); // респавним слайма
+				spawnGhost(ghost.getSpawnPosition()); // респавним слайма
 			}
 		}
 
@@ -219,6 +219,7 @@ public class PixelGame extends ApplicationAdapter {
 		for (Damager enemy : enemies) {
 			if (enemy instanceof Slime) {
 				Slime slime = (Slime) enemy;
+				slime.checkCollisionWithPlayer(player);
 				slime.update(Gdx.graphics.getDeltaTime());
 				slime.checkTargetInView(player.getPosition());
 				slime.render(slimeBatch); // заменяем batch на slimeBatch
@@ -230,6 +231,7 @@ public class PixelGame extends ApplicationAdapter {
 		for (Damager enemy : enemies) {
 			if (enemy instanceof Ghost) {
 				Ghost ghost = (Ghost) enemy;
+				ghost.checkCollisionWithPlayer(player);
 				ghost.update(Gdx.graphics.getDeltaTime());
 				ghost.checkTargetInView(player.getPosition());
 				ghost.render(ghostBatch); // Используем ghostBatch для рендера призраков
@@ -269,7 +271,7 @@ public class PixelGame extends ApplicationAdapter {
 	private void spawnSlime(Vector2 spawnPosition) {
 		System.out.println("Spawning slime at " + spawnPosition);
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
-		Slime slime = new Slime(slimes, 10, spawnPosition, collisionLayers);
+		Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers);
 		enemies.add(slime);
 		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
 	}
@@ -277,7 +279,7 @@ public class PixelGame extends ApplicationAdapter {
 	private void spawnGhost(Vector2 spawnPosition) {
 		System.out.println("Spawning ghost at " + spawnPosition);
 		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
-		Ghost ghost = new Ghost(ghosts, 10, spawnPosition, collisionLayers);
+		Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers);
 		enemies.add(ghost);
 		slimeDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
 	}
@@ -293,15 +295,13 @@ public class PixelGame extends ApplicationAdapter {
 					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 						// Если клавиша space нажата, вызываем метод takeDamage для слайма
 						slime.takeDamage(player.getDamage());
+						player.stopMoving();
+						slime.stopMoving();
 					} else {
 						player.takeDamage(slime.getDamage());
 						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						if (player.isMoving()) {
-							player.stopMoving();
-						}
-						else if (slime.isMoving()) {
-							slime.stopMoving();
-						}
+						player.stopMoving();
+						slime.stopMoving();
 					}
 				}
 			}
