@@ -25,13 +25,14 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
+import com.erloo.pixelgame.dialogues.Dialogue;
+import com.erloo.pixelgame.dialogues.DialogueBox;
+import com.erloo.pixelgame.dialogues.DialogueManager;
+import com.erloo.pixelgame.dialogues.DialogueOption;
 import com.erloo.pixelgame.units.Alice;
 import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
 import java.util.HashMap;
-import com.badlogic.gdx.graphics.g2d.NinePatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.Texture;
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
@@ -63,6 +64,8 @@ public class PixelGame extends ApplicationAdapter {
 	private TextureAtlas aliceAtlas;
 	private Alice alice;
 	private Vector2 aliceSpawnPosition;
+	private DialogueBox dialogueBox;
+	private DialogueManager dialogueManager;
 	@Override
 	public void create() {
 		map = new TmxMapLoader().load("map.tmx");
@@ -154,7 +157,13 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Генерируем BitmapFont из файла TTF
 		healthFont = generator.generateFont(parameter);
-		dialogFont = generator.generateFont(parameter);
+
+		// Настраиваем параметры шрифта
+		FreeTypeFontParameter dialog = new FreeTypeFontParameter();
+		dialog.size = 16;
+		dialog.color = Color.WHITE;
+
+		dialogFont = generator.generateFont(dialog);
 
 		// Создаем новый FreeTypeFontParameter с большим размером шрифта для "YOU DIED!"
 		FreeTypeFontParameter deathFontParameter = new FreeTypeFontParameter();
@@ -163,6 +172,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Генерируем новый BitmapFont для "YOU DIED!"
 		deathFont = generator.generateFont(deathFontParameter);
+		dialogueBox = new DialogueBox(dialogFont, alice);
 
 		// Освобождаем ресурсы генератора шрифтов
 		generator.dispose();
@@ -178,8 +188,38 @@ public class PixelGame extends ApplicationAdapter {
 			throw new RuntimeException("Alice spawn point not found");
 		}
 
+		dialogueManager = new DialogueManager();
+		DialogueOption Aoption1 = new DialogueOption("Bye", null);
+		DialogueOption Boption1 = new DialogueOption("Bye", null);
+
+		Array<DialogueOption> Aoptions = new Array<DialogueOption>();
+		Aoptions.add(Aoption1);
+
+		Array<DialogueOption> Bptions = new Array<DialogueOption>();
+		Bptions.add(Boption1);
+
+		Dialogue rewardDialogue = new Dialogue("Yes, there is a great reward for the one who can \ndefeat the Dark Knight.", Aoptions);
+		Dialogue knightDialogue = new Dialogue("The Dark Knight is a powerful and evil being. He \nwas once a human, but was corrupted by a dark \nforce.", Bptions);
+
+		DialogueOption option1 = new DialogueOption("I can handle it", null);
+		DialogueOption option2 = new DialogueOption("Is there any reward for doing that?", rewardDialogue);
+		DialogueOption option3 = new DialogueOption("Can you tell me more about that knight?", knightDialogue);
+
+		Array<DialogueOption> options = new Array<DialogueOption>();
+		options.add(option1);
+		options.add(option2);
+		options.add(option3);
+
+		Dialogue firstDialogue = new Dialogue("The world has been corrupted. The Dark Knight \nkeeps the whole world at bay. " +
+				"Humanity needs \nsomeone to defeat him.", options);
+
+		dialogueManager.addDialogue("alice_first_dialogue", firstDialogue);
+		dialogueManager.addDialogue("alice_reward_dialogue", rewardDialogue);
+		dialogueManager.addDialogue("alice_knight_dialogue", knightDialogue);
+
 		aliceAtlas = new TextureAtlas("npc/alice.atlas");
-		alice = new Alice(aliceAtlas, aliceSpawnPosition, player);
+		alice = new Alice(aliceAtlas, aliceSpawnPosition, player, dialogFont, dialogueBox, dialogueManager);
+
 	}
 	@Override
 	public void render() {
@@ -278,6 +318,10 @@ public class PixelGame extends ApplicationAdapter {
 		checkCollisions(); // добавьте эту строку
 
 		uiBatch.begin();
+		if (alice.isActive()) {
+			dialogueBox.render(uiBatch);
+			alice.getDialogueBox().handleInput();
+		}
 		if (player.isDead()) {
 			deathFont.setColor(Color.RED);
 			Gdx.gl.glClearColor(0, 0, 0, 1);
@@ -289,6 +333,7 @@ public class PixelGame extends ApplicationAdapter {
 			healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
 		}
 		uiBatch.end();
+
 
 		for (int i = enemies.size - 1; i >= 0; i--) {
 			Damager enemy = enemies.get(i);
@@ -387,6 +432,7 @@ public class PixelGame extends ApplicationAdapter {
 		renderer.dispose();
 		playerAtlas.dispose();
 		healthFont.dispose();
+		dialogFont.dispose();
 		deathFont.dispose(); // Добавляем dispose для deathFont
 		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
 		ghostBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
