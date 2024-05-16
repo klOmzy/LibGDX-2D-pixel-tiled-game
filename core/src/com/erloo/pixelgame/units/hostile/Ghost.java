@@ -11,8 +11,14 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.Grid;
+import com.erloo.pixelgame.Node;
+import com.erloo.pixelgame.Pathfinder;
 import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damageable;
+import com.erloo.pixelgame.damage.Health;
+
+import java.util.List;
 
 public class Ghost extends Enemy implements Damageable {
     private Vector2 position;
@@ -23,72 +29,88 @@ public class Ghost extends Enemy implements Damageable {
     private float viewRadius;
     private boolean isChasing;
     private Vector2 target;
-    private int health;
-    private boolean isDead;
-    private boolean isBlinking;
-    private float blinkTimer;
-    private float blinkDuration; // Длительность мигания (например, 0.1 секунды)
-    private float blinkInterval; // Интервал между миганиями (например, 0.1 секунды)
-    private boolean isInvulnerable;
-    private float invulnerabilityTimer;
-    private float invulnerabilityDuration;
     private Vector2 spawnPosition;
     private Array<TiledMapTileLayer> collisionLayers;
     private boolean isCollidingWithPlayer;
-    public Ghost(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers) {
+    private Pathfinder pathfinder;
+    private Grid grid;
+    private Player player;
+    private Health health;
+
+    public Ghost(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage);
         this.position = position;
         this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
         this.atlas = atlas;
         this.collisionLayers = collisionLayers;
+        this.grid = grid;
+        this.player = player;
         viewRadius = 50f; // Задайте нужное значение радиуса обзора
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-        health = 30; // Задайте начальное значение здоровья
+        health = new Health(30); // устанавливаем максимальное здоровье
+        pathfinder = new Pathfinder();
     }
 
     public void update(float delta) {
-        invulnerabilityDuration = 0.5f;
-        if (isInvulnerable) {
-            invulnerabilityTimer += delta;
-            if (invulnerabilityTimer >= invulnerabilityDuration) {
-                isInvulnerable = false;
-            }
-        }
+        health.regenerate(delta);
+        setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
-                Vector2 direction = target.cpy().sub(position).nor();
-                float speed = 40f; // Set the desired speed
+                List<Node> path = findPathToPlayer(player);
+                if (path != null && !path.isEmpty()) {
+                    Node nextNode = path.get(0);
+                    Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
+                    Vector2 direction = nextPosition.cpy().sub(position).nor();
+                    float speed = 40f;
 
-                float newX = position.x + direction.x * speed * delta;
-                float newY = position.y + direction.y * speed * delta;
+                    float newX = position.x;
+                    float newY = position.y;
 
-                if (!isCellOccupied(newX, newY)) {
-                    position.x = newX;
-                    position.y = newY;
-                } else {
-                    System.out.println("Slime hit an obstacle!"); // Add this line
-                }
+                    // Move along X-axis
+                    newX += direction.x * speed * delta;
+//                    position.x = newX;
 
-                // Update the current animation based on the direction of movement
-                if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                    if (direction.x > 0) {
-                        currentAnimation = rightAnimation;
-                    } else if (direction.x < 0) {
-                        currentAnimation = leftAnimation;
+                    if (!isCellOccupied(newX, position.y)) {
+                        position.x = newX;
+                    } else {
+                        System.out.println("Slime hit an obstacle!");
                     }
-                } else {
-                    if (direction.y > 0) {
-                        currentAnimation = backAnimation;
-                    } else if (direction.y < 0) {
-                        currentAnimation = frontAnimation;
+
+                    // Move along Y-axis
+                    newY += direction.y * speed * delta;
+//                    position.y = newY;
+
+                    if (!isCellOccupied(position.x, newY)) {
+                        position.y = newY;
+                    } else {
+                        System.out.println("Slime hit an obstacle!");
+                    }
+
+                    // Update the current animation based on the direction of movement
+                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                        if (direction.x > 0) {
+                            currentAnimation = rightAnimation;
+                        } else if (direction.x < 0) {
+                            currentAnimation = leftAnimation;
+                        }
+                    } else {
+                        if (direction.y > 0) {
+                            currentAnimation = backAnimation;
+                        } else if (direction.y < 0) {
+                            currentAnimation = frontAnimation;
+                        }
+                    }
+
+                    if (position.epsilonEquals(nextPosition, 1f)) {
+                        path.remove(0);
                     }
                 }
             } else {
-                if (!position.epsilonEquals(spawnPosition, 1f)) { // Add this check
+                if (!position.epsilonEquals(spawnPosition, 1f)) {
                     Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 40f; // Set the desired speed
+                    float speed = 40f;
 
                     float newX = position.x + direction.x * speed * delta;
                     float newY = position.y + direction.y * speed * delta;
@@ -113,8 +135,7 @@ public class Ghost extends Enemy implements Damageable {
                         }
                     }
                 } else {
-                    // Slime has reached the spawn point, stop moving
-                    currentAnimation = frontAnimation; // Set the default animation
+                    currentAnimation = frontAnimation;
                 }
             }
         }
@@ -126,26 +147,8 @@ public class Ghost extends Enemy implements Damageable {
 
         int ghostWidth = currentFrame.getRegionWidth();
         int ghostHeight = currentFrame.getRegionHeight();
-        blinkDuration = 0.02f;
-        blinkInterval = 0.1f;
 
-        if (isBlinking) {
-            blinkTimer += Gdx.graphics.getDeltaTime();
-            if (blinkTimer > blinkDuration * 8) { // Умножим blinkDuration на количество миганий (в этом случае 5)
-                isBlinking = false;
-                // Сбросить цвет batch в исходное состояние
-                ghostBatch.setColor(Color.WHITE);
-            } else if (Math.floor(blinkTimer / (blinkDuration + blinkInterval)) % 2 == 0) { // Проверим, следует ли отображать красный цвет или белый
-                // Установить красный цвет для мигания
-                ghostBatch.setColor(Color.RED);
-            } else {
-                // Сбросить цвет batch в исходное состояние
-                ghostBatch.setColor(Color.WHITE);
-            }
-        } else {
-            // Убедитесь, что цвет batch сброшен в исходное состояние, когда нет мигания
-            ghostBatch.setColor(Color.WHITE);
-        }
+        blinking(ghostBatch);
         ghostBatch.draw(currentFrame, position.x - ghostWidth / 2, position.y - ghostHeight / 2);
     }
     public void checkCollisionWithPlayer(Player player) {
@@ -216,34 +219,21 @@ public class Ghost extends Enemy implements Damageable {
         return spawnPosition;
     }
 
-    public boolean isMoving() {
-        return isChasing;
-    }
-
     public void stopMoving() {
         isChasing = false;
     }
 
     @Override
-    public void takeDamage(int damage) {
-        if (!isInvulnerable) {
-            health -= damage; // Уменьшаем здоровье на полученный урон
-            isBlinking = true;
-            blinkTimer = 0;
-            isInvulnerable = true;
-            invulnerabilityTimer = 0;
-            if (health <= 0) {
-                System.out.println("Ghost is dead");
-                isDead = true;
-            }
-        }
+    public void deathmessage(){
+        String message = "Ghost is dead";
+        System.out.println(message);
     }
 
-    public boolean isDead() {
-        return isDead;
-    }
-
-    public int getHealth() {
-        return health;
+    public List<Node> findPathToPlayer(Player player) {
+        int playerGridX = (int) (player.getPosition().x / 16);
+        int playerGridY = (int) (player.getPosition().y / 16);
+        Node startNode = grid.getNode((int) (position.x / 16), (int) (position.y / 16));
+        Node endNode = grid.getNode(playerGridX, playerGridY);
+        return pathfinder.findPath(startNode, endNode, grid);
     }
 }

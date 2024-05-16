@@ -25,10 +25,13 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator.FreeTypeFontParameter;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
+import com.erloo.pixelgame.units.Alice;
 import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
 import java.util.HashMap;
-
+import com.badlogic.gdx.graphics.g2d.NinePatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.Texture;
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
@@ -47,24 +50,23 @@ public class PixelGame extends ApplicationAdapter {
 	private float spawnY;
 	private HealthBar healthBar;
 	private BitmapFont healthFont;
+	private BitmapFont dialogFont;
 	private ShapeRenderer shapeRenderer;
 	private BitmapFont deathFont;
 	private Array<Damager> enemies;
 	private SpriteBatch slimeBatch; // добавляем новый SpriteBatch
 	private SpriteBatch ghostBatch; // Новый SpriteBatch для рендера призраков
+	private SpriteBatch npcBatch;
 	private HashMap<Slime, Float> slimeDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 	private HashMap<Ghost, Float> ghostDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
-	boolean[][] grid;
-	int gridWidth;
-	int gridHeight;
-	int tileSize;
-	private AStar aStar;
-
+	private Grid grid;
+	private TextureAtlas aliceAtlas;
+	private Alice alice;
+	private Vector2 aliceSpawnPosition;
 	@Override
 	public void create() {
 		map = new TmxMapLoader().load("map.tmx");
 		collisionLayers = new Array<>();
-
 		for (MapLayer layer : map.getLayers()) {
 			if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
 				boolean isCollisionLayer = (boolean) layer.getProperties().get("collision");
@@ -72,6 +74,9 @@ public class PixelGame extends ApplicationAdapter {
 					collisionLayers.add((TiledMapTileLayer) layer);
 				}
 			}
+		}
+		if (collisionLayers.size == 0) {
+			throw new RuntimeException("Collision layers not found");
 		}
 
 		camera = new OrthographicCamera(viewportWidth, viewportHeight);
@@ -82,7 +87,7 @@ public class PixelGame extends ApplicationAdapter {
 		slimeBatch = new SpriteBatch(); // инициализируем новый SpriteBatch
 		uiBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		ghostBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
-
+		npcBatch = new SpriteBatch();
 		// Устанавливаем размеры камеры в соответствии с размерами окна
 		camera.setToOrtho(false, viewportWidth, viewportHeight);
 
@@ -101,23 +106,30 @@ public class PixelGame extends ApplicationAdapter {
 
 		mapWidth = map.getProperties().get("width", Integer.class) * map.getProperties().get("tilewidth", Integer.class);
 		mapHeight = map.getProperties().get("height", Integer.class) * map.getProperties().get("tileheight", Integer.class);
-		AStar aStar = new AStar();
 
-		// Create the grid
-		createGrid();
+		grid = new Grid((int) (mapWidth / 16), (int) (mapHeight / 16));
+		for (int i = 0; i < grid.width; i++) {
+			for (int j = 0; j < grid.height; j++) {
+				Node node = grid.getNode(i, j);
+				if (isCellOccupied(i * 16, j * 16)) { // предполагая, что метод isCellOccupied проверяет, занята ли клетка в слое коллизий
+					node.walkable = false;
+				} else {
+					node.walkable = true;
+				}
+			}
+		}
 
-		// Initialize the grid based on the collision layers of the map
-		initializeGrid();
+		grid.printGrid(); // выводим Grid в консоль
 		enemies = new Array<Damager>();
 
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
 		MapLayer spawnLayer = map.getLayers().get("Spawn");
 		for (MapObject object : spawnLayer.getObjects()) {
 			if (object.getName().startsWith("Slime")) {
-				float spawnX = object.getProperties().get("x", Float.class) + 8;
-				float spawnY = object.getProperties().get("y", Float.class) + 8;
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, player, aStar, grid, tileSize);
+				Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, grid, player);
 				enemies.add(slime);
 			}
 		}
@@ -125,10 +137,10 @@ public class PixelGame extends ApplicationAdapter {
 		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
 		for (MapObject object : spawnLayer.getObjects()) {
 			if (object.getName().startsWith("Ghost")) {
-				float spawnX = object.getProperties().get("x", Float.class) + 8;
-				float spawnY = object.getProperties().get("y", Float.class) + 8;
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers);
+				Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers, grid, player);
 				enemies.add(ghost);
 			}
 		}
@@ -142,6 +154,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Генерируем BitmapFont из файла TTF
 		healthFont = generator.generateFont(parameter);
+		dialogFont = generator.generateFont(parameter);
 
 		// Создаем новый FreeTypeFontParameter с большим размером шрифта для "YOU DIED!"
 		FreeTypeFontParameter deathFontParameter = new FreeTypeFontParameter();
@@ -156,6 +169,17 @@ public class PixelGame extends ApplicationAdapter {
 
 		shapeRenderer = new ShapeRenderer();
 		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), healthFont);
+
+		MapObject aliceSpawnObject = map.getLayers().get("AliceSpawn").getObjects().get("AliceSpawnPoint");
+		if (aliceSpawnObject != null) {
+			aliceSpawnPosition = new Vector2(aliceSpawnObject.getProperties().get("x", Float.class),
+					aliceSpawnObject.getProperties().get("y", Float.class));
+		} else {
+			throw new RuntimeException("Alice spawn point not found");
+		}
+
+		aliceAtlas = new TextureAtlas("npc/alice.atlas");
+		alice = new Alice(aliceAtlas, aliceSpawnPosition, player);
 	}
 	@Override
 	public void render() {
@@ -186,6 +210,7 @@ public class PixelGame extends ApplicationAdapter {
 		batch.setProjectionMatrix(camera.combined);
 		slimeBatch.setProjectionMatrix(camera.combined);
 		ghostBatch.setProjectionMatrix(camera.combined);
+		npcBatch.setProjectionMatrix(camera.combined);
 
 		Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
 		for (Slime slime : temporarySlimes) {
@@ -211,16 +236,19 @@ public class PixelGame extends ApplicationAdapter {
 		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 		healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
 		shapeRenderer.end();
-		// Проверка урона (Потом удалить)
-		if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
-			player.takeDamage(10);
+
+		npcBatch.begin();
+		alice.update(Gdx.graphics.getDeltaTime());
+		alice.render(npcBatch);
+		npcBatch.end();
+
+		if (alice.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+			alice.interact();
 		}
-		else if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
-			player.takeDamage(100);
+
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			//
 		}
-		batch.begin();
-		player.render(batch);
-		batch.end();
 
 		// заменяем batch на slimeBatch
 		slimeBatch.begin();
@@ -274,49 +302,28 @@ public class PixelGame extends ApplicationAdapter {
 			}
 		}
 
+		batch.begin();
+		player.render(batch);
+		batch.end();
 	}
-	public void createGrid() {
-		tileSize = map.getProperties().get("tilewidth", Integer.class);
-		gridWidth = map.getProperties().get("width", Integer.class);
-		gridHeight = map.getProperties().get("height", Integer.class);
-		grid = new boolean[gridWidth][gridHeight];
-	}
-
-	public void initializeGrid() {
+	public boolean isCellOccupied(float x, float y) {
 		for (TiledMapTileLayer layer : collisionLayers) {
-			for (int x = 0; x < layer.getWidth(); x++) {
-				for (int y = 0; y < layer.getHeight(); y++) {
-					TiledMapTileLayer.Cell cell = layer.getCell(x, y);
-					if (cell != null && cell.getTile() != null) {
-						// Check if the "collision" property is defined
-						Boolean isUnitsCollision = (Boolean) cell.getTile().getProperties().get("collision");
-						if (isUnitsCollision != null) {
-							// The "collision" property is defined, so use it to set the grid value
-							grid[x][y] = !isUnitsCollision;
-						} else {
-							// The "collision" property is not defined, so assume that the tile is not collidable
-							grid[x][y] = false;
-						}
-					} else {
-						// The cell is empty, so assume that it is not collidable
-						grid[x][y] = true;
-					}
+			int cellX = (int) (x / 16);
+			int cellY = (int) (y / 16);
+			if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
+				TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
+				if (cell != null && cell.getTile() != null) {
+					return true;
 				}
 			}
 		}
-		for (int y = 0; y < grid.length; y++) {
-			for (int x = 0; x < grid[y].length; x++) {
-				System.out.print(grid[y][x] ? "O " : "X ");
-			}
-			System.out.println();
-		}
+		return false;
 	}
-
 
 	private void spawnSlime(Vector2 spawnPosition) {
 		System.out.println("Spawning slime at " + spawnPosition);
 		TextureAtlas slimes = new TextureAtlas("enemies/slime.atlas");
-		Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, player, aStar, grid, tileSize);
+		Slime slime = new Slime(slimes, 5, spawnPosition, collisionLayers, grid, player);
 		enemies.add(slime);
 		slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
 	}
@@ -324,7 +331,7 @@ public class PixelGame extends ApplicationAdapter {
 	private void spawnGhost(Vector2 spawnPosition) {
 		System.out.println("Spawning ghost at " + spawnPosition);
 		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
-		Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers);
+		Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers, grid, player);
 		enemies.add(ghost);
 		slimeDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
 	}
@@ -383,5 +390,6 @@ public class PixelGame extends ApplicationAdapter {
 		deathFont.dispose(); // Добавляем dispose для deathFont
 		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
 		ghostBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
+		npcBatch.dispose();
 	}
 }
