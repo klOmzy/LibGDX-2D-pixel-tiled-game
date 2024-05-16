@@ -31,12 +31,18 @@ public class Enemy implements Damager {
             blinkTimer = 0;
             isInvulnerable = true;
             invulnerabilityTimer = 0;
+            System.out.println("Unit's HP: " + health);
+
             if (health <= 0) {
                 deathmessage();
                 isDead = true;
             }
         }
     }
+    public int getHealth() {
+        return health;
+    }
+
     public void deathmessage(){
         String message = "Unit is dead";
         System.out.println(message);

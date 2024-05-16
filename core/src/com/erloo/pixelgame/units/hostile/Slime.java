@@ -35,7 +35,6 @@ public class Slime extends Enemy implements Damageable {
     private Pathfinder pathfinder;
     private Grid grid;
     private Player player;
-    private Health health;
 
     public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage);
@@ -49,12 +48,11 @@ public class Slime extends Enemy implements Damageable {
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-        health = new Health(30); // устанавливаем максимальное здоровье
+        health = 30; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
     }
 
     public void update(float delta) {
-        health.regenerate(delta);
         setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
