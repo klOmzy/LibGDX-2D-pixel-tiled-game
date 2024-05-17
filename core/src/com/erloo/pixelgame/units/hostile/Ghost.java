@@ -1,7 +1,6 @@
 package com.erloo.pixelgame.units.hostile;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -11,12 +10,11 @@ import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import com.erloo.pixelgame.Grid;
-import com.erloo.pixelgame.Node;
-import com.erloo.pixelgame.Pathfinder;
+import com.erloo.pixelgame.pathfinding.Grid;
+import com.erloo.pixelgame.pathfinding.Node;
+import com.erloo.pixelgame.pathfinding.Pathfinder;
 import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damageable;
-import com.erloo.pixelgame.damage.Health;
 
 import java.util.List;
 

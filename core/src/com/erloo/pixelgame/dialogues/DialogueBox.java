@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.erloo.pixelgame.Player;
 
 public class DialogueBox {
     private BitmapFont dialogFont;
@@ -18,9 +19,12 @@ public class DialogueBox {
     private Dialoguable dialoguable;
     private boolean isDialogueOpen;
     private boolean isActive;
-    public DialogueBox(BitmapFont dialogFont, Dialoguable dialoguable) {
+    private Player player;
+
+    public DialogueBox(BitmapFont dialogFont, Dialoguable dialoguable, Player player) {
         this.dialogFont = dialogFont;
         this.dialoguable = dialoguable;
+        this.player = player;
         selectedOption = 0;
         shapeRenderer = new ShapeRenderer();
         FreeTypeFontGenerator.FreeTypeFontParameter dialog = new FreeTypeFontGenerator.FreeTypeFontParameter();
@@ -92,6 +96,8 @@ public class DialogueBox {
         isDialogueOpen = dialogueOpen;
     }
     public void handleInput() {
+        player.setPlayerActive(false); // Добавлено
+
         if (Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
             selectedOption = (selectedOption + currentDialogue.getOptions().size - 1) % currentDialogue.getOptions().size;
         }
@@ -109,6 +115,7 @@ public class DialogueBox {
                 }
             } else {
                 setActive(false);
+                player.setPlayerActive(true); // Добавлено
             }
         }
     }

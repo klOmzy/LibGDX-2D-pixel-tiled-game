@@ -1,4 +1,4 @@
-package com.erloo.pixelgame;
+package com.erloo.pixelgame.pathfinding;
 
 public class Grid {
     public Node[] nodes;

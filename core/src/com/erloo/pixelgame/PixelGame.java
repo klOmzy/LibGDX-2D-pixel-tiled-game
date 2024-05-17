@@ -29,6 +29,8 @@ import com.erloo.pixelgame.dialogues.Dialogue;
 import com.erloo.pixelgame.dialogues.DialogueBox;
 import com.erloo.pixelgame.dialogues.DialogueManager;
 import com.erloo.pixelgame.dialogues.DialogueOption;
+import com.erloo.pixelgame.pathfinding.Grid;
+import com.erloo.pixelgame.pathfinding.Node;
 import com.erloo.pixelgame.units.Alice;
 import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
@@ -66,8 +68,22 @@ public class PixelGame extends ApplicationAdapter {
 	private Vector2 aliceSpawnPosition;
 	private DialogueBox dialogueBox;
 	private DialogueManager dialogueManager;
+	private GameState state;
+	private Menu menu;
+	private int selectedMenuIndex;
+	public enum GameState {
+		MENU,
+		PLAY,
+		PAUSE
+	}
+
 	@Override
 	public void create() {
+		state = GameState.MENU;
+		String[] menuOptions = new String[] {"Start Game", "Exit"};
+		selectedMenuIndex = 0;
+		menu = new Menu(this, menuOptions, selectedMenuIndex);
+
 		map = new TmxMapLoader().load("map.tmx");
 		collisionLayers = new Array<>();
 		for (MapLayer layer : map.getLayers()) {
@@ -172,7 +188,7 @@ public class PixelGame extends ApplicationAdapter {
 
 		// Генерируем новый BitmapFont для "YOU DIED!"
 		deathFont = generator.generateFont(deathFontParameter);
-		dialogueBox = new DialogueBox(dialogFont, alice);
+		dialogueBox = new DialogueBox(dialogFont, alice, player);
 
 		// Освобождаем ресурсы генератора шрифтов
 		generator.dispose();
@@ -223,134 +239,165 @@ public class PixelGame extends ApplicationAdapter {
 	}
 	@Override
 	public void render() {
-		Gdx.gl.glClearColor(1, 1, 1, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		switch (state) {
+			case MENU:
+				Gdx.gl.glClearColor(0, 0, 0, 1);
+				Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+				menu.update(); // добавляем этот вызов
+				menu.render();
+				break;
+			case PLAY:
+				Gdx.gl.glClearColor(1, 1, 1, 1);
+				Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		player.update(Gdx.graphics.getDeltaTime(), mapWidth, mapHeight);
-		player.centerCamera();
+				if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+					if (state == GameState.PLAY) {
+						state = GameState.PAUSE;
+					} else if (state == GameState.PAUSE) {
+						state = GameState.PLAY;
+					}
+				}
 
-		float cameraX = player.getPosition().x;
-		float cameraY = player.getPosition().y;
+				player.update(Gdx.graphics.getDeltaTime(), mapWidth, mapHeight);
+				player.centerCamera();
 
-		if (cameraX < viewportWidth / 2) {
-			cameraX = viewportWidth / 2;
-		} else if (cameraX > mapWidth - viewportWidth / 2) {
-			cameraX = mapWidth - viewportWidth / 2;
+				float cameraX = player.getPosition().x;
+				float cameraY = player.getPosition().y;
+
+				if (cameraX < viewportWidth / 2) {
+					cameraX = viewportWidth / 2;
+				} else if (cameraX > mapWidth - viewportWidth / 2) {
+					cameraX = mapWidth - viewportWidth / 2;
+				}
+
+				if (cameraY < viewportHeight / 2) {
+					cameraY = viewportHeight / 2;
+				} else if (cameraY > mapHeight - viewportHeight / 2) {
+					cameraY = mapHeight - viewportHeight / 2;
+				}
+
+				camera.position.set(cameraX, cameraY, 0);
+				camera.update();
+
+				batch.setProjectionMatrix(camera.combined);
+				slimeBatch.setProjectionMatrix(camera.combined);
+				ghostBatch.setProjectionMatrix(camera.combined);
+				npcBatch.setProjectionMatrix(camera.combined);
+
+				Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
+				for (Slime slime : temporarySlimes) {
+					slimeDeathTimes.put(slime, slimeDeathTimes.get(slime) + Gdx.graphics.getDeltaTime());
+					if (slimeDeathTimes.get(slime) >= 10) { // если прошло 5 секунд после смерти слайма
+						slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
+						spawnSlime(slime.getSpawnPosition()); // респавним слайма
+					}
+				}
+
+				Array<Ghost> temporaryGhost = new Array<Ghost>(ghostDeathTimes.keySet().toArray(new Ghost[0]));
+				for (Ghost ghost : temporaryGhost) {
+					ghostDeathTimes.put(ghost, ghostDeathTimes.get(ghost) + Gdx.graphics.getDeltaTime());
+					if (ghostDeathTimes.get(ghost) >= 10) { // если прошло 5 секунд после смерти слайма
+						ghostDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
+						spawnGhost(ghost.getSpawnPosition()); // респавним слайма
+					}
+				}
+
+				renderer.setView(camera);
+				renderer.render();
+
+				shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+				healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
+				shapeRenderer.end();
+
+				npcBatch.begin();
+				alice.update(Gdx.graphics.getDeltaTime());
+				alice.render(npcBatch);
+				npcBatch.end();
+
+				if (alice.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+					alice.interact();
+				}
+
+				if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+					//
+				}
+
+				// заменяем batch на slimeBatch
+				slimeBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Slime) {
+						Slime slime = (Slime) enemy;
+						slime.checkCollisionWithPlayer(player);
+						slime.update(Gdx.graphics.getDeltaTime());
+						slime.checkTargetInView(player.getPosition());
+						slime.render(slimeBatch); // заменяем batch на slimeBatch
+					}
+				}
+				slimeBatch.end();
+
+				ghostBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Ghost) {
+						Ghost ghost = (Ghost) enemy;
+						ghost.checkCollisionWithPlayer(player);
+						ghost.update(Gdx.graphics.getDeltaTime());
+						ghost.checkTargetInView(player.getPosition());
+						ghost.render(ghostBatch); // Используем ghostBatch для рендера призраков
+					}
+				}
+				ghostBatch.end();
+
+				checkCollisions(); // добавьте эту строку
+
+				batch.begin();
+				player.render(batch);
+				batch.end();
+
+				uiBatch.begin();
+				if (alice.isActive()) {
+					dialogueBox.render(uiBatch);
+					alice.getDialogueBox().handleInput();
+				}
+				if (player.isDead()) {
+					deathFont.setColor(Color.RED);
+					Gdx.gl.glClearColor(0, 0, 0, 1);
+					Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+					GlyphLayout layout = new GlyphLayout(deathFont, "YOU DIED!");
+					deathFont.draw(uiBatch, layout, Gdx.graphics.getWidth() / 2 - layout.width / 2, Gdx.graphics.getHeight() / 2);
+				}
+				else {
+					healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+				}
+				uiBatch.end();
+
+				for (int i = enemies.size - 1; i >= 0; i--) {
+					Damager enemy = enemies.get(i);
+					if (enemy instanceof Slime && ((Slime) enemy).isDead()) {
+						enemies.removeIndex(i);
+						slimeDeathTimes.put((Slime) enemy, 0f); // добавляем время смерти слайма в список
+					}
+					else if (enemy instanceof Ghost && ((Ghost) enemy).isDead()) {
+						enemies.removeIndex(i);
+						ghostDeathTimes.put((Ghost) enemy, 0f); // добавляем время смерти слайма в список
+					}
+				}
+				break;
+			case PAUSE:
+				Gdx.gl.glClearColor(0, 0, 0, 1);
+				Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+				menu.update();
+				menu.render();
+				// Рендеринг экрана паузы
+				break;
 		}
-
-		if (cameraY < viewportHeight / 2) {
-			cameraY = viewportHeight / 2;
-		} else if (cameraY > mapHeight - viewportHeight / 2) {
-			cameraY = mapHeight - viewportHeight / 2;
-		}
-
-		camera.position.set(cameraX, cameraY, 0);
-		camera.update();
-
-		batch.setProjectionMatrix(camera.combined);
-		slimeBatch.setProjectionMatrix(camera.combined);
-		ghostBatch.setProjectionMatrix(camera.combined);
-		npcBatch.setProjectionMatrix(camera.combined);
-
-		Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
-		for (Slime slime : temporarySlimes) {
-			slimeDeathTimes.put(slime, slimeDeathTimes.get(slime) + Gdx.graphics.getDeltaTime());
-			if (slimeDeathTimes.get(slime) >= 10) { // если прошло 5 секунд после смерти слайма
-				slimeDeathTimes.remove(slime); // удаляем слайма из списка мертвых слаймов
-				spawnSlime(slime.getSpawnPosition()); // респавним слайма
-			}
-		}
-
-		Array<Ghost> temporaryGhost = new Array<Ghost>(ghostDeathTimes.keySet().toArray(new Ghost[0]));
-		for (Ghost ghost : temporaryGhost) {
-			ghostDeathTimes.put(ghost, ghostDeathTimes.get(ghost) + Gdx.graphics.getDeltaTime());
-			if (ghostDeathTimes.get(ghost) >= 10) { // если прошло 5 секунд после смерти слайма
-				ghostDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
-				spawnGhost(ghost.getSpawnPosition()); // респавним слайма
-			}
-		}
-
-		renderer.setView(camera);
-		renderer.render();
-
-		shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-		healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
-		shapeRenderer.end();
-
-		npcBatch.begin();
-		alice.update(Gdx.graphics.getDeltaTime());
-		alice.render(npcBatch);
-		npcBatch.end();
-
-		if (alice.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-			alice.interact();
-		}
-
-		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-			//
-		}
-
-		// заменяем batch на slimeBatch
-		slimeBatch.begin();
-		for (Damager enemy : enemies) {
-			if (enemy instanceof Slime) {
-				Slime slime = (Slime) enemy;
-				slime.checkCollisionWithPlayer(player);
-				slime.update(Gdx.graphics.getDeltaTime());
-				slime.checkTargetInView(player.getPosition());
-				slime.render(slimeBatch); // заменяем batch на slimeBatch
-			}
-		}
-		slimeBatch.end();
-
-		ghostBatch.begin();
-		for (Damager enemy : enemies) {
-			if (enemy instanceof Ghost) {
-				Ghost ghost = (Ghost) enemy;
-				ghost.checkCollisionWithPlayer(player);
-				ghost.update(Gdx.graphics.getDeltaTime());
-				ghost.checkTargetInView(player.getPosition());
-				ghost.render(ghostBatch); // Используем ghostBatch для рендера призраков
-			}
-		}
-		ghostBatch.end();
-
-		checkCollisions(); // добавьте эту строку
-
-		uiBatch.begin();
-		if (alice.isActive()) {
-			dialogueBox.render(uiBatch);
-			alice.getDialogueBox().handleInput();
-		}
-		if (player.isDead()) {
-			deathFont.setColor(Color.RED);
-			Gdx.gl.glClearColor(0, 0, 0, 1);
-			Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-			GlyphLayout layout = new GlyphLayout(deathFont, "YOU DIED!");
-			deathFont.draw(uiBatch, layout, Gdx.graphics.getWidth() / 2 - layout.width / 2, Gdx.graphics.getHeight() / 2);
-		}
-		else {
-			healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
-		}
-		uiBatch.end();
-
-
-		for (int i = enemies.size - 1; i >= 0; i--) {
-			Damager enemy = enemies.get(i);
-			if (enemy instanceof Slime && ((Slime) enemy).isDead()) {
-				enemies.removeIndex(i);
-				slimeDeathTimes.put((Slime) enemy, 0f); // добавляем время смерти слайма в список
-			}
-			else if (enemy instanceof Ghost && ((Ghost) enemy).isDead()) {
-				enemies.removeIndex(i);
-				ghostDeathTimes.put((Ghost) enemy, 0f); // добавляем время смерти слайма в список
-			}
-		}
-
-		batch.begin();
-		player.render(batch);
-		batch.end();
 	}
+	public void startGame() {
+		state = GameState.PLAY;
+		// Загрузка вашего уровня
+		menu.setMenuItemText(0, "Resume");
+		selectedMenuIndex = 0;
+	}
+
 	public boolean isCellOccupied(float x, float y) {
 		for (TiledMapTileLayer layer : collisionLayers) {
 			int cellX = (int) (x / 16);

@@ -1,4 +1,4 @@
-package com.erloo.pixelgame;
+package com.erloo.pixelgame.pathfinding;
 
 import java.util.ArrayList;
 import java.util.Collections;
