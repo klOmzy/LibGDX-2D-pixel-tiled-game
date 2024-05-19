@@ -21,6 +21,8 @@ public class Merchant extends NPC {
     private DialogueBox dialogueBox;
     private DialogueManager dialogueManager;
     private Coin playerCoins;
+    private static final int HP_UPGRADE_COST = 25;
+    private static final int DAMAGE_UPGRADE_COST = 25;
 
     public Merchant(TextureAtlas atlas, Vector2 position, Player player, BitmapFont dialogFont, DialogueBox  dialogueBox, DialogueManager dialogueManager,  Coin playerCoins) {
         super();
@@ -67,16 +69,42 @@ public class Merchant extends NPC {
     }
 
     public void startDialogue() {
-        currentDialogue = dialogueManager.getDialogue("merchant1");
+        currentDialogue = dialogueManager.getDialogue("merchantfirst");
         dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
     }
+    public void purchaseUpgradeDamage() {
+        if (player.getCoins().getCoins() >= DAMAGE_UPGRADE_COST) { // Проверяем, достаточно ли денег у игрока
+            player.getCoins().removeCoins(DAMAGE_UPGRADE_COST); // Вычитаем стоимость зелья из денег игрока
+            player.upgradeDamage();
+            currentDialogue = dialogueManager.getDialogue("merchant_success");
+            dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
 
+        } else {
+            currentDialogue = dialogueManager.getDialogue("merchant_fail2");
+            dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
+        }
+    }
+    public void purchaseUpgradeHP() {
+        if (player.getCoins().getCoins() >= HP_UPGRADE_COST) { // Проверяем, достаточно ли денег у игрока
+            player.getCoins().removeCoins(HP_UPGRADE_COST); // Вычитаем стоимость зелья из денег игрока
+            player.upgradeMaxHealth();
+            currentDialogue = dialogueManager.getDialogue("merchant_success");
+            dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
+        } else {
+            currentDialogue = dialogueManager.getDialogue("merchant_fail1");
+            dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
+        }
+    }
     public boolean isNearPlayer() {
         return position.dst(player.getPosition()) <= NEAR_PLAYER_THRESHOLD;
     }
 
     private void createAnimations() {
-        Array<TextureAtlas.AtlasRegion> frontFrames = new Array<>();
+        Array<TextureAtlas.AtlasRegion> frontFrames  = new Array<>();
         frontFrames.add(atlas.findRegion("front"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
         currentFrame = frontAnimation.getKeyFrame(0);

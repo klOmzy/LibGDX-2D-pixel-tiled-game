@@ -20,7 +20,7 @@ public class Mage extends NPC {
     private boolean isDialogueOpen;
     private DialogueBox dialogueBox;
     private DialogueManager dialogueManager;
-    private static final int HEALTH_POTION_PRICE = 50;
+    private static final int HEALTH_POTION_PRICE = 25;
     private Coin playerCoins;
     public Mage(TextureAtlas atlas, Vector2 position, Player player, BitmapFont dialogFont, DialogueBox  dialogueBox, DialogueManager dialogueManager) {
         super();
@@ -66,20 +66,20 @@ public class Mage extends NPC {
     }
 
     public void startDialogue() {
-        currentDialogue = dialogueManager.getDialogue("merchant1");
+        currentDialogue = dialogueManager.getDialogue("magefirst");
         dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
     }
     public void purchaseHealthPotion() {
         if (player.getCoins().getCoins() >= HEALTH_POTION_PRICE) { // Проверяем, достаточно ли денег у игрока
             player.getCoins().removeCoins(HEALTH_POTION_PRICE); // Вычитаем стоимость зелья из денег игрока
             player.addHealthPotion(); // Добавляем зелье в инвентарь игрока
-            currentDialogue = dialogueManager.getDialogue("merchant1_success");
+            currentDialogue = dialogueManager.getDialogue("mage_success");
             dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
-
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
         } else {
-            currentDialogue = dialogueManager.getDialogue("merchant1_fail");
+            currentDialogue = dialogueManager.getDialogue("mage_fail");
             dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
-
+            dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
         }
     }
     public boolean isNearPlayer() {

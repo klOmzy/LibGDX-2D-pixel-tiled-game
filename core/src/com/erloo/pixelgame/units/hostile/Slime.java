@@ -146,7 +146,12 @@ public class Slime extends Enemy implements Damageable {
         blinking(slimeBatch);
         slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
     }
-
+    public int getSlimeWidth() {
+        return currentFrame.getRegionWidth();
+    }
+    public int getSlimeHeight() {
+        return currentFrame.getRegionHeight();
+    }
     public void checkCollisionWithPlayer(Player player) {
         Rectangle slimeRect = getBoundingRectangle();
         Rectangle playerRect = player.getBoundingRectangle();
@@ -156,7 +161,9 @@ public class Slime extends Enemy implements Damageable {
             isCollidingWithPlayer = false;
         }
     }
-
+    public Vector2 getPosition() {
+        return position;
+    }
     public boolean isCellOccupied(float x, float y) {
         for (TiledMapTileLayer layer : collisionLayers) {
             int cellX = (int) (x / 16);
@@ -183,7 +190,9 @@ public class Slime extends Enemy implements Damageable {
             isChasing = false;
         }
     }
-
+    public int getHealth() {
+        return health;
+    }
     public Rectangle getBoundingRectangle() {
         return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
     }

@@ -263,29 +263,59 @@ public class PixelGame extends ApplicationAdapter {
 		dialogueManager.addDialogue("alice_knight_dialogue", knightDialogue);
 
 
-		DialogueOption MerchantOption1Success = new DialogueOption("Thanks for a health potion!", null, null);
+		DialogueOption MageOption1Success = new DialogueOption("Thanks for a health potion!", null, null);
+		Array<DialogueOption> MageOptionsSuccess = new Array<>();
+		MageOptionsSuccess.add(MageOption1Success);
+		Dialogue mageDiaSuccess = new Dialogue("Thank you for your purchase!", MageOptionsSuccess);
+		dialogueManager.addDialogue("mage_success", mageDiaSuccess);
+
+		DialogueOption MageOption1Fail = new DialogueOption("Oh, I'll be back later.", null, null);
+		Array<DialogueOption> MageOptionsFail = new Array<>();
+		MageOptionsFail.add(MageOption1Fail);
+		Dialogue mageDiaFail = new Dialogue("You don't have enough coins to buy a health potion.", MageOptionsFail);
+		dialogueManager.addDialogue("mage_fail", mageDiaFail);
+
+		DialogueOption MageOption1 = new DialogueOption("Buy a health potion for 25 coins", null, () -> mage.purchaseHealthPotion());
+		DialogueOption MageOption2 = new DialogueOption("No thanks, maybe later", null, null);
+
+		Array<DialogueOption> MageOptions = new Array<>();
+		MageOptions.add(MageOption1);
+		MageOptions.add(MageOption2);
+
+		Dialogue mageDia = new Dialogue("Welcome to my shop! I have health potions for sale. \nWould you like to buy one?", MageOptions);
+
+
+		dialogueManager.addDialogue("magefirst", mageDia);
+
+		DialogueOption MerchantOption1Success = new DialogueOption("Thanks for the upgrade!", null, null);
 		Array<DialogueOption> MerchantOptionsSuccess = new Array<>();
 		MerchantOptionsSuccess.add(MerchantOption1Success);
 		Dialogue merchantDiaSuccess = new Dialogue("Thank you for your purchase!", MerchantOptionsSuccess);
-		dialogueManager.addDialogue("merchant1_success", merchantDiaSuccess);
+		dialogueManager.addDialogue("merchant_success", merchantDiaSuccess);
 
 		DialogueOption MerchantOption1Fail = new DialogueOption("Oh, I'll be back later.", null, null);
 		Array<DialogueOption> MerchantOptionsFail = new Array<>();
 		MerchantOptionsFail.add(MerchantOption1Fail);
-		Dialogue merchantDiaFail = new Dialogue("You don't have enough coins to buy a health potion.", MerchantOptionsFail);
-		dialogueManager.addDialogue("merchant1_fail", merchantDiaFail);
 
-		DialogueOption MerchantOption1 = new DialogueOption("Buy a health potion for 50 coins", null, () -> mage.purchaseHealthPotion());
-		DialogueOption MerchantOption2 = new DialogueOption("No thanks, maybe later", null, null);
+		Dialogue merchantDiaFail1 = new Dialogue("You don't have enough coins to buy a HP upgrade.", MerchantOptionsFail);
+		dialogueManager.addDialogue("merchant_fail1", merchantDiaFail1);
+
+		Dialogue merchantDiaFail2 = new Dialogue("You don't have enough coins to buy a \ndamage upgrade.", MerchantOptionsFail);
+		dialogueManager.addDialogue("merchant_fail2", merchantDiaFail2);
+
+		DialogueOption MerchantOption1 = new DialogueOption("Buy a +25 HP for 25 coins", null, () -> merchant.purchaseUpgradeHP());
+		DialogueOption MerchantOption2 = new DialogueOption("Buy a +5 damage for 25 coins", null, () -> merchant.purchaseUpgradeDamage());
+		DialogueOption MerchantOption3 = new DialogueOption("No thanks, maybe later", null, null);
 
 		Array<DialogueOption> MerchantOptions = new Array<>();
 		MerchantOptions.add(MerchantOption1);
 		MerchantOptions.add(MerchantOption2);
+		MerchantOptions.add(MerchantOption3);
 
-		Dialogue merchantDia = new Dialogue("Welcome to my shop! I have health potions for sale. \nWould you like to buy one?", MerchantOptions);
+		Dialogue merchantDia = new Dialogue("Welcome to my shop! I can help you upgrade your \nstats!. Would you like some buffs?", MerchantOptions);
 
 
-		dialogueManager.addDialogue("merchant1", merchantDia);
+		dialogueManager.addDialogue("merchantfirst", merchantDia);
 
 
 		aliceAtlas = new TextureAtlas("npc/alice.atlas");
@@ -385,6 +415,9 @@ public class PixelGame extends ApplicationAdapter {
 				if (mage.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
 					mage.interact();
 				}
+				if (merchant.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+					merchant.interact();
+				}
 				if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
 					player.useHealthPotion();
 				}
@@ -426,6 +459,17 @@ public class PixelGame extends ApplicationAdapter {
 				batch.end();
 
 				uiBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Slime) {
+						Slime slime = (Slime) enemy;
+						Vector2 position = slime.getPosition();
+						String healthText = String.valueOf(slime.getHealth());
+						// Check if the slime is within the camera's viewport
+						if (camera.frustum.pointInFrustum(position.x, position.y, 0)) {
+							healthFont.draw(uiBatch, healthText, 200, 200);
+						}
+					}
+				}
 				if (alice.isActive()) {
 					dialogueBox.setDialogueOpen(true);
 					dialogueBox.render(uiBatch);

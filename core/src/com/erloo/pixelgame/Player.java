@@ -48,7 +48,6 @@ public class Player implements Damageable, Healable {
     private Vector2 previousPosition = new Vector2();
     boolean isPlayerActive = true;
     private Coin coins;
-    private final int UPGRADE_COST = 100;
     private int numHealthPotions;
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
@@ -250,25 +249,20 @@ public class Player implements Damageable, Healable {
     public void setPlayerActive(boolean isPlayerActive) {
         this.isPlayerActive = isPlayerActive;
     }
-    public void upgradeDamage() {
-        if (coins.removeCoins(UPGRADE_COST)) {
-            this.damage += 5;
-        }
-    }
-
-    public void upgradeMaxHealth() {
-        if (coins.removeCoins(UPGRADE_COST)) {
-            health.setMaxHealth(health.getMaxHealth() + 50);
-            health.heal(50);
-        }
-    }
     public void addHealthPotion() {
         numHealthPotions++;
     }
     public int getNumHealthPotions() {
         return numHealthPotions;
     }
+    public void upgradeDamage() {
+        this.damage += 5;
+    }
 
+    public void upgradeMaxHealth() {
+        health.setMaxHealth(health.getMaxHealth() + 25);
+        health.heal(25);
+    }
     public void useHealthPotion() {
         if (numHealthPotions > 0) {
             numHealthPotions--;
