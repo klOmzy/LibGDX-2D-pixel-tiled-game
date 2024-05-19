@@ -33,9 +33,8 @@ public class Slime extends Enemy implements Damageable {
     private Pathfinder pathfinder;
     private Grid grid;
     private Player player;
-
     public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
-        super(damage);
+        super(damage, player);
         this.position = position;
         this.spawnPosition = position.cpy();
         this.atlas = atlas;
@@ -171,7 +170,11 @@ public class Slime extends Enemy implements Damageable {
         }
         return false;
     }
-
+    @Override
+    public void reward(){
+        int COIN_REWARD = 5;
+        player.getCoins().addCoins(COIN_REWARD);
+    }
     public void checkTargetInView(Vector2 target) {
         if (position.dst(target) <= viewRadius) {
             isChasing = true;

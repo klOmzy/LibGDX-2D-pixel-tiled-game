@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.Array;
 import com.erloo.pixelgame.damage.Damageable;
 import com.erloo.pixelgame.damage.Healable;
 import com.erloo.pixelgame.damage.Health;
+import com.erloo.pixelgame.units.Merchant;
 
 public class Player implements Damageable, Healable {
     private Vector2 position;
@@ -46,6 +47,9 @@ public class Player implements Damageable, Healable {
     private float moveY;
     private Vector2 previousPosition = new Vector2();
     boolean isPlayerActive = true;
+    private Coin coins;
+    private final int UPGRADE_COST = 100;
+    private int numHealthPotions;
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
         this.atlas = atlas;
         this.spawnX = spawnX;
@@ -53,9 +57,12 @@ public class Player implements Damageable, Healable {
         this.collisionLayers = collisionLayers;
         this.camera = camera;
         this.damage = 10; // инициализируем переменную damage значением 10 (например)
+        this.coins = new Coin();
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);
         health = new Health(100); // устанавливаем максимальное здоровье
+
+        numHealthPotions = 0;
 
         attackCooldown = 0; // Initialize the attack cooldown to 0
         stateTime = 0;
@@ -203,12 +210,12 @@ public class Player implements Damageable, Healable {
                     moveX *= norm;
                     moveY *= norm;
                 }
-            } else {
-                deathTimer -= delta;
-                if (deathTimer <= 0) {
-                    isDead = false;
-                    health.heal(100); // Восстанавливаем здоровье до 100 HP
-                }
+            }
+        } else {
+            deathTimer -= delta;
+            if (deathTimer <= 0) {
+                isDead = false;
+                health.heal(100); // Восстанавливаем здоровье до 100 HP
             }
         }
     }
@@ -243,7 +250,34 @@ public class Player implements Damageable, Healable {
     public void setPlayerActive(boolean isPlayerActive) {
         this.isPlayerActive = isPlayerActive;
     }
+    public void upgradeDamage() {
+        if (coins.removeCoins(UPGRADE_COST)) {
+            this.damage += 5;
+        }
+    }
 
+    public void upgradeMaxHealth() {
+        if (coins.removeCoins(UPGRADE_COST)) {
+            health.setMaxHealth(health.getMaxHealth() + 50);
+            health.heal(50);
+        }
+    }
+    public void addHealthPotion() {
+        numHealthPotions++;
+    }
+    public int getNumHealthPotions() {
+        return numHealthPotions;
+    }
+
+    public void useHealthPotion() {
+        if (numHealthPotions > 0) {
+            numHealthPotions--;
+            new HealthPotion().use(this);
+        }
+    }
+    public Coin getCoins() {
+        return coins;
+    }
     public boolean isPlayerActive() {
         return isPlayerActive;
     }

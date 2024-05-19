@@ -32,6 +32,8 @@ import com.erloo.pixelgame.dialogues.DialogueOption;
 import com.erloo.pixelgame.pathfinding.Grid;
 import com.erloo.pixelgame.pathfinding.Node;
 import com.erloo.pixelgame.units.Alice;
+import com.erloo.pixelgame.units.Mage;
+import com.erloo.pixelgame.units.Merchant;
 import com.erloo.pixelgame.units.hostile.Ghost;
 import com.erloo.pixelgame.units.hostile.Slime;
 import java.util.HashMap;
@@ -53,6 +55,7 @@ public class PixelGame extends ApplicationAdapter {
 	private float spawnY;
 	private HealthBar healthBar;
 	private BitmapFont healthFont;
+	private BitmapFont coinPotionFont;
 	private BitmapFont dialogFont;
 	private ShapeRenderer shapeRenderer;
 	private BitmapFont deathFont;
@@ -64,13 +67,22 @@ public class PixelGame extends ApplicationAdapter {
 	private HashMap<Ghost, Float> ghostDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 	private Grid grid;
 	private TextureAtlas aliceAtlas;
+	private TextureAtlas mageAtlas;
+	private TextureAtlas merchantAtlas;
 	private Alice alice;
+	private Mage mage;
+	private Merchant merchant;
 	private Vector2 aliceSpawnPosition;
+	private Vector2 mageSpawnPosition;
+	private Vector2 merchantSpawnPosition;
 	private DialogueBox dialogueBox;
 	private DialogueManager dialogueManager;
 	private GameState state;
 	private Menu menu;
 	private int selectedMenuIndex;
+	private Coin playerCoins;
+	private static final int HEALTH_POTION_PRICE = 50;
+
 	public enum GameState {
 		MENU,
 		PLAY,
@@ -83,7 +95,7 @@ public class PixelGame extends ApplicationAdapter {
 		String[] menuOptions = new String[] {"Start Game", "Exit"};
 		selectedMenuIndex = 0;
 		menu = new Menu(this, menuOptions, selectedMenuIndex);
-
+		playerCoins = new Coin();
 		map = new TmxMapLoader().load("map.tmx");
 		collisionLayers = new Array<>();
 		for (MapLayer layer : map.getLayers()) {
@@ -174,11 +186,16 @@ public class PixelGame extends ApplicationAdapter {
 		// Генерируем BitmapFont из файла TTF
 		healthFont = generator.generateFont(parameter);
 
+		FreeTypeFontParameter coinparameter = new FreeTypeFontParameter();
+		coinparameter.size = 24;
+		coinparameter.color = Color.RED;
+
+		coinPotionFont =  generator.generateFont(coinparameter);
+
 		// Настраиваем параметры шрифта
 		FreeTypeFontParameter dialog = new FreeTypeFontParameter();
 		dialog.size = 16;
 		dialog.color = Color.WHITE;
-
 		dialogFont = generator.generateFont(dialog);
 
 		// Создаем новый FreeTypeFontParameter с большим размером шрифта для "YOU DIED!"
@@ -196,7 +213,7 @@ public class PixelGame extends ApplicationAdapter {
 		shapeRenderer = new ShapeRenderer();
 		healthBar = new HealthBar(10, 10, 200, 20, new Color(0.3f, 0.3f, 0.3f, 1), new Color(0.8f, 0.2f, 0.2f, 1), healthFont);
 
-		MapObject aliceSpawnObject = map.getLayers().get("AliceSpawn").getObjects().get("AliceSpawnPoint");
+		MapObject aliceSpawnObject = map.getLayers().get("NPC_Spawn").getObjects().get("AliceSpawnPoint");
 		if (aliceSpawnObject != null) {
 			aliceSpawnPosition = new Vector2(aliceSpawnObject.getProperties().get("x", Float.class),
 					aliceSpawnObject.getProperties().get("y", Float.class));
@@ -204,24 +221,36 @@ public class PixelGame extends ApplicationAdapter {
 			throw new RuntimeException("Alice spawn point not found");
 		}
 
+		MapObject mageSpawnObject = map.getLayers().get("NPC_Spawn").getObjects().get("MageSpawnPoint");
+		if (mageSpawnObject != null) {
+			mageSpawnPosition = new Vector2(mageSpawnObject.getProperties().get("x", Float.class),
+					mageSpawnObject.getProperties().get("y", Float.class));
+		} else {
+			throw new RuntimeException("Mage spawn point not found");
+		}
+
+		MapObject merchantSpawnObject = map.getLayers().get("NPC_Spawn").getObjects().get("MerchantSpawnPoint");
+		if (merchantSpawnObject != null) {
+			merchantSpawnPosition = new Vector2(merchantSpawnObject.getProperties().get("x", Float.class),
+					merchantSpawnObject.getProperties().get("y", Float.class));
+		} else {
+			throw new RuntimeException("Merchant spawn point not found");
+		}
+		//
 		dialogueManager = new DialogueManager();
-		DialogueOption Aoption1 = new DialogueOption("Bye", null);
-		DialogueOption Boption1 = new DialogueOption("Bye", null);
+		DialogueOption byeoption1 = new DialogueOption("Good bye!", null, null);
 
-		Array<DialogueOption> Aoptions = new Array<DialogueOption>();
-		Aoptions.add(Aoption1);
+		Array<DialogueOption> byeoption = new Array<>();
+		byeoption.add(byeoption1);
 
-		Array<DialogueOption> Bptions = new Array<DialogueOption>();
-		Bptions.add(Boption1);
+		Dialogue rewardDialogue = new Dialogue("Yes, there is a great reward for the one who can \ndefeat the Dark Knight.", byeoption);
+		Dialogue knightDialogue = new Dialogue("The Dark Knight is a powerful and evil being. He \nwas once a human, but was corrupted by a dark \nforce.", byeoption);
 
-		Dialogue rewardDialogue = new Dialogue("Yes, there is a great reward for the one who can \ndefeat the Dark Knight.", Aoptions);
-		Dialogue knightDialogue = new Dialogue("The Dark Knight is a powerful and evil being. He \nwas once a human, but was corrupted by a dark \nforce.", Bptions);
+		DialogueOption option1 = new DialogueOption("I can handle it", null, null);
+		DialogueOption option2 = new DialogueOption("Is there any reward for doing that?", rewardDialogue, null);
+		DialogueOption option3 = new DialogueOption("Can you tell me more about that knight?", knightDialogue, null);
 
-		DialogueOption option1 = new DialogueOption("I can handle it", null);
-		DialogueOption option2 = new DialogueOption("Is there any reward for doing that?", rewardDialogue);
-		DialogueOption option3 = new DialogueOption("Can you tell me more about that knight?", knightDialogue);
-
-		Array<DialogueOption> options = new Array<DialogueOption>();
+		Array<DialogueOption> options = new Array<>();
 		options.add(option1);
 		options.add(option2);
 		options.add(option3);
@@ -233,8 +262,40 @@ public class PixelGame extends ApplicationAdapter {
 		dialogueManager.addDialogue("alice_reward_dialogue", rewardDialogue);
 		dialogueManager.addDialogue("alice_knight_dialogue", knightDialogue);
 
+
+		DialogueOption MerchantOption1Success = new DialogueOption("Thanks for a health potion!", null, null);
+		Array<DialogueOption> MerchantOptionsSuccess = new Array<>();
+		MerchantOptionsSuccess.add(MerchantOption1Success);
+		Dialogue merchantDiaSuccess = new Dialogue("Thank you for your purchase!", MerchantOptionsSuccess);
+		dialogueManager.addDialogue("merchant1_success", merchantDiaSuccess);
+
+		DialogueOption MerchantOption1Fail = new DialogueOption("Oh, I'll be back later.", null, null);
+		Array<DialogueOption> MerchantOptionsFail = new Array<>();
+		MerchantOptionsFail.add(MerchantOption1Fail);
+		Dialogue merchantDiaFail = new Dialogue("You don't have enough coins to buy a health potion.", MerchantOptionsFail);
+		dialogueManager.addDialogue("merchant1_fail", merchantDiaFail);
+
+		DialogueOption MerchantOption1 = new DialogueOption("Buy a health potion for 50 coins", null, () -> mage.purchaseHealthPotion());
+		DialogueOption MerchantOption2 = new DialogueOption("No thanks, maybe later", null, null);
+
+		Array<DialogueOption> MerchantOptions = new Array<>();
+		MerchantOptions.add(MerchantOption1);
+		MerchantOptions.add(MerchantOption2);
+
+		Dialogue merchantDia = new Dialogue("Welcome to my shop! I have health potions for sale. \nWould you like to buy one?", MerchantOptions);
+
+
+		dialogueManager.addDialogue("merchant1", merchantDia);
+
+
 		aliceAtlas = new TextureAtlas("npc/alice.atlas");
 		alice = new Alice(aliceAtlas, aliceSpawnPosition, player, dialogFont, dialogueBox, dialogueManager);
+
+		mageAtlas = new TextureAtlas("npc/mage.atlas");
+		mage = new Mage(mageAtlas, mageSpawnPosition, player, dialogFont, dialogueBox, dialogueManager);
+
+		merchantAtlas = new TextureAtlas("npc/merchant.atlas");
+		merchant = new Merchant(merchantAtlas, merchantSpawnPosition, player, dialogFont, dialogueBox, dialogueManager, playerCoins);
 
 	}
 	@Override
@@ -312,16 +373,27 @@ public class PixelGame extends ApplicationAdapter {
 				npcBatch.begin();
 				alice.update(Gdx.graphics.getDeltaTime());
 				alice.render(npcBatch);
+				mage.update(Gdx.graphics.getDeltaTime());
+				mage.render(npcBatch);
+				merchant.update(Gdx.graphics.getDeltaTime());
+				merchant.render(npcBatch);
 				npcBatch.end();
 
 				if (alice.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
 					alice.interact();
 				}
-
-				if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-					//
+				if (mage.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+					mage.interact();
 				}
-
+				if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+					player.useHealthPotion();
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.T)) {
+					player.getCoins().addCoins(100);
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
+					player.takeDamage(70);
+				}
 				// заменяем batch на slimeBatch
 				slimeBatch.begin();
 				for (Damager enemy : enemies) {
@@ -355,6 +427,7 @@ public class PixelGame extends ApplicationAdapter {
 
 				uiBatch.begin();
 				if (alice.isActive()) {
+					dialogueBox.setDialogueOpen(true);
 					dialogueBox.render(uiBatch);
 					alice.getDialogueBox().handleInput();
 				}
@@ -368,6 +441,13 @@ public class PixelGame extends ApplicationAdapter {
 				else {
 					healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
 				}
+				String coinText = "Coins: " + player.getCoins().getCoins();
+				coinPotionFont.draw(uiBatch, coinText, 10, Gdx.graphics.getHeight() - 10);
+				// Отображаем зелья
+
+				String healthPotionText = "Health Potions: " + player.getNumHealthPotions();
+				coinPotionFont.draw(uiBatch, healthPotionText, 10, Gdx.graphics.getHeight() - 40);
+
 				uiBatch.end();
 
 				for (int i = enemies.size - 1; i >= 0; i--) {
@@ -484,5 +564,6 @@ public class PixelGame extends ApplicationAdapter {
 		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
 		ghostBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
 		npcBatch.dispose();
+		coinPotionFont.dispose();
 	}
 }

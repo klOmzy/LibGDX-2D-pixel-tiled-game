@@ -34,7 +34,7 @@ public class Ghost extends Enemy implements Damageable {
     private Grid grid;
     private Player player;
     public Ghost(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
-        super(damage);
+        super(damage, player);
         this.position = position;
         this.spawnPosition = position.cpy(); // сохраняем начальную позицию спавна
         this.atlas = atlas;

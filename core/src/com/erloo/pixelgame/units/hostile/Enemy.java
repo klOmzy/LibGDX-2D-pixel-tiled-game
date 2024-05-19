@@ -3,6 +3,7 @@ package com.erloo.pixelgame.units.hostile;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damager;
 
 public class Enemy implements Damager {
@@ -17,8 +18,11 @@ public class Enemy implements Damager {
     protected float invulnerabilityDuration;
     protected int health;
 
-    public Enemy(int damage) {
+    protected Player player;
+
+    public Enemy(int damage, Player player) {
         this.damage = damage;
+        this.player = player;
     }
     @Override
     public int getDamage() {
@@ -34,6 +38,7 @@ public class Enemy implements Damager {
             System.out.println("Unit's HP: " + health);
 
             if (health <= 0) {
+                reward();
                 deathmessage();
                 isDead = true;
             }
@@ -42,7 +47,10 @@ public class Enemy implements Damager {
     public int getHealth() {
         return health;
     }
-
+    public void reward(){
+        int COIN_REWARD = 10;
+        player.getCoins().addCoins(COIN_REWARD);
+    }
     public void deathmessage(){
         String message = "Unit is dead";
         System.out.println(message);

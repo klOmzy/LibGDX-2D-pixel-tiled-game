@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="96" height="72" tilewidth="16" tileheight="16" infinite="0" nextlayerid="31" nextobjectid="29">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="96" height="72" tilewidth="16" tileheight="16" infinite="0" nextlayerid="32" nextobjectid="31">
  <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="1755" columns="27">
   <image source="sprite.png" width="432" height="1040"/>
  </tileset>
@@ -94,8 +94,10 @@
 28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,39,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29,28,29
 </data>
  </layer>
- <objectgroup id="29" name="AliceSpawn">
+ <objectgroup id="29" name="NPC_Spawn">
   <object id="26" name="AliceSpawnPoint" x="808" y="616" width="1" height="1"/>
+  <object id="29" name="MerchantSpawnPoint" x="753.818" y="553.409" width="1" height="1"/>
+  <object id="30" name="MageSpawnPoint" x="678.945" y="553.132" width="1" height="1"/>
  </objectgroup>
  <layer id="19" name="stairs" width="96" height="72">
   <data encoding="csv">

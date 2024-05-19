@@ -95,6 +95,7 @@ public class DialogueBox {
     public void setDialogueOpen(boolean dialogueOpen) {
         isDialogueOpen = dialogueOpen;
     }
+
     public void handleInput() {
         player.setPlayerActive(false); // Добавлено
 
@@ -107,7 +108,8 @@ public class DialogueBox {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
             DialogueOption selectedOption = currentDialogue.getOptions().get(this.selectedOption);
             Dialogue nextDialogue = selectedOption.getNextDialogue();
-            if (nextDialogue != null) {
+
+            if (nextDialogue != null && selectedOption.getAction() == null) { // добавляем эту проверку
                 currentDialogue = nextDialogue;
                 this.selectedOption = 0;
                 if (!isActive && nextDialogue.getOptions().size > 0) { // Only set isActive to true if it is currently false and there is a valid selected option
@@ -116,6 +118,10 @@ public class DialogueBox {
             } else {
                 setActive(false);
                 player.setPlayerActive(true); // Добавлено
+            }
+            if (nextDialogue == null && selectedOption.getAction() != null) { // добавляем эту проверку
+                selectedOption.getAction().run(); // Вызываем связанный метод
+                setActive(true);
             }
         }
     }
