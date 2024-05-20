@@ -214,7 +214,7 @@ public class Player implements Damageable, Healable {
             deathTimer -= delta;
             if (deathTimer <= 0) {
                 isDead = false;
-                health.heal(100); // Восстанавливаем здоровье до 100 HP
+                health.heal(100000); // Восстанавливаем здоровье до 100 HP
             }
         }
     }
@@ -262,6 +262,7 @@ public class Player implements Damageable, Healable {
     public void upgradeMaxHealth() {
         health.setMaxHealth(health.getMaxHealth() + 25);
         health.heal(25);
+        health.increasePassiveRegenerationRate(0.5f); // вызов нового метода, увеличиваем скорость пассивного восстановления на 0.1 HP в секунду
     }
     public void useHealthPotion() {
         if (numHealthPotions > 0) {

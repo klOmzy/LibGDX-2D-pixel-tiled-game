@@ -450,10 +450,6 @@ public class PixelGame extends ApplicationAdapter {
 				foregroundRenderer.setView(camera);
 				foregroundRenderer.render();
 
-				shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-				healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
-				shapeRenderer.end();
-
 				npcBatch.begin();
 				alice.update(Gdx.graphics.getDeltaTime());
 				alice.render(npcBatch);
@@ -462,6 +458,10 @@ public class PixelGame extends ApplicationAdapter {
 				merchant.update(Gdx.graphics.getDeltaTime());
 				merchant.render(npcBatch);
 				npcBatch.end();
+
+				shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+				healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
+				shapeRenderer.end();
 
 				backgroundRenderer.setView(camera);
 				backgroundRenderer.render();

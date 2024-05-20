@@ -4,10 +4,11 @@ public class Health {
     private int currentHealth;
     private int maxHealth;
     private float regenerationTimer;
-
+    private float passiveRegenerationRate; // новая переменная
     public Health(int maxHealth) {
         this.maxHealth = maxHealth;
         this.currentHealth = maxHealth;
+        this.passiveRegenerationRate = 1; // инициализация скорости пассивного восстановления
     }
 
     public int getCurrentHealth() {
@@ -39,13 +40,16 @@ public class Health {
         if (currentHealth < maxHealth) {
             regenerationTimer -= delta;
             if (regenerationTimer <= 0) { // Таймер ожидания регенерации истек
-                currentHealth += 1; // Увеличиваем на 1 HP
+                currentHealth += (int) passiveRegenerationRate; // Увеличиваем HP с учетом скорости пассивного восстановления
                 if (currentHealth > maxHealth) {
                     currentHealth = maxHealth;
                 }
                 regenerationTimer = 1; // Сбрасываем таймер регенерации на 1 секунду
             }
         }
+    }
+    public void increasePassiveRegenerationRate(float amount) {
+        passiveRegenerationRate += amount;
     }
 }
 
