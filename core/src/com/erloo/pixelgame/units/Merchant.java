@@ -21,8 +21,8 @@ public class Merchant extends NPC {
     private DialogueBox dialogueBox;
     private DialogueManager dialogueManager;
     private Coin playerCoins;
-    private static final int HP_UPGRADE_COST = 25;
-    private static final int DAMAGE_UPGRADE_COST = 25;
+    private static final int HP_UPGRADE_COST = 15;
+    private static final int DAMAGE_UPGRADE_COST = 15;
 
     public Merchant(TextureAtlas atlas, Vector2 position, Player player, BitmapFont dialogFont, DialogueBox  dialogueBox, DialogueManager dialogueManager,  Coin playerCoins) {
         super();

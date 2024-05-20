@@ -55,12 +55,13 @@ public class Slime extends Enemy implements Damageable {
     }
 
     public void update(float delta) {
-        boolean wasMoving = isMoving(); // сохраняем предыдущее значение isMoving
-        isMoving = false; // сбрасываем isMoving в false
+        boolean wasMoving = isMoving();
+        isMoving = false;
 
         setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
+                // Обновляем позицию и анимацию слайма, когда он преследует игрока
                 List<Node> path = findPathToPlayer(player);
                 if (path != null && !path.isEmpty()) {
                     Node nextNode = path.get(0);
@@ -71,7 +72,6 @@ public class Slime extends Enemy implements Damageable {
                     float newX = position.x;
                     float newY = position.y;
 
-                    // Move along X-axis
                     newX += direction.x * speed * delta;
                     position.x = newX;
 
@@ -83,52 +83,19 @@ public class Slime extends Enemy implements Damageable {
 //                    } else {
 //                        System.out.println("Slime hit an obstacle!");
 //                    }
-
-
+//
+//
 //                    if (!isCellOccupied(position.x, newY)) {
 //                        position.y = newY;
 //                    } else {
 //                        System.out.println("Slime hit an obstacle!");
 //                    }
 
-                    // Update the current animation based on the direction of movement
-                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                        if (direction.x > 0) {
-                            currentAnimation = rightAnimation;
-                        } else if (direction.x < 0) {
-                            currentAnimation = leftAnimation;
-                        }
-                    } else {
-                        if (direction.y > 0) {
-                            currentAnimation = backAnimation;
-                        } else if (direction.y < 0) {
-                            currentAnimation = frontAnimation;
-                        }
-                    }
-
                     if (position.epsilonEquals(nextPosition, 1f)) {
                         path.remove(0);
                     }
 
-                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
-                }
-            } else {
-                if (!position.epsilonEquals(spawnPosition, 1f)) {
-                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 40f;
-
-                    float newX = position.x + direction.x * speed * delta;
-                    float newY = position.y + direction.y * speed * delta;
-
-                    position.x = newX;
-                    position.y = newY;
-
-//                    if (!isCellOccupied(newX, newY)) {
-//                        position.x = newX;
-//                        position.y = newY;
-//                    }
-
-                    // Update the current animation based on the direction of movement
+                    // Обновляем анимацию в соответствии с направлением, когда слайм преследует игрока
                     if (Math.abs(direction.x) > Math.abs(direction.y)) {
                         if (direction.x > 0) {
                             currentAnimation = rightAnimation;
@@ -143,14 +110,47 @@ public class Slime extends Enemy implements Damageable {
                         }
                     }
 
-                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
+                    isMoving = true;
+                }
+            } else {
+                // Обновляем позицию и анимацию слайма, когда он не преследует игрока и не соприкасается с ним
+                if (!position.epsilonEquals(spawnPosition, 1f)) {
+                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
+                    float speed = 40f;
+
+                    float newX = position.x;
+                    float newY = position.y;
+
+                    newX += direction.x * speed * delta;
+                    position.x = newX;
+
+                    newY += direction.y * speed * delta;
+                    position.y = newY;
+
+                    // Обновляем анимацию в соответствии с направлением, когда слайм возвращается на свою исходную позицию
+                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                        if (direction.x > 0) {
+                            currentAnimation = rightAnimation;
+                        } else if (direction.x < 0) {
+                            currentAnimation = leftAnimation;
+                        }
+                    } else {
+                        if (direction.y > 0) {
+                            currentAnimation = backAnimation;
+                        } else if (direction.y < 0) {
+                            currentAnimation = frontAnimation;
+                        }
+                    }
+
+                    isMoving = true;
                 } else {
+                    // Устанавливаем frontAnimation, когда слайм не двигается и не соприкасается с игроком
                     currentAnimation = frontAnimation;
                 }
             }
         }
 
-        if (wasMoving != isMoving()) { // обновляем stateTime только при изменении значения isMoving
+        if (wasMoving != isMoving()) {
             stateTime = 0;
         }
     }
@@ -159,20 +159,14 @@ public class Slime extends Enemy implements Damageable {
         stateTime += Gdx.graphics.getDeltaTime();
 
         if (isCollidingWithPlayer) {
-            if (currentAnimation == frontAnimation) {
-                currentFrame = frontFrame;
-            } else if (currentAnimation == backAnimation) {
-                currentFrame = backFrame;
-            } else if (currentAnimation == leftAnimation) {
-                currentFrame = leftFrame;
-            } else if (currentAnimation == rightAnimation) {
-                currentFrame = rightFrame;
-            }
+            // Останавливаем анимацию, когда слайм соприкасается с игроком
+            currentFrame = currentAnimation.getKeyFrame(0);
         } else {
-            if (isMoving()) { // обновляем анимацию только при движении
+            // Обновляем анимацию, когда слайм не соприкасается с игроком
+            if (isMoving()) {
                 currentFrame = currentAnimation.getKeyFrame(stateTime, true);
             } else {
-                // устанавливаем первый кадр frontAnimation при остановке
+                // Устанавливаем первый кадр frontAnimation, когда слайм не двигается и не соприкасается с игроком
                 currentFrame = frontAnimation.getKeyFrame(0);
             }
         }
@@ -183,6 +177,7 @@ public class Slime extends Enemy implements Damageable {
         blinking(slimeBatch);
         slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
     }
+
     public void setMoving(boolean moving) { // переопределяем сеттер для isMoving в классе Slime
         super.setMoving(moving);
     }
@@ -241,6 +236,7 @@ public class Slime extends Enemy implements Damageable {
     public int getHealth() {
         return health;
     }
+
     public Rectangle getBoundingRectangle() {
         return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
     }

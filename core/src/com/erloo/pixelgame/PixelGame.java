@@ -483,6 +483,9 @@ public class PixelGame extends ApplicationAdapter {
 				if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
 					player.upgradeDamage();
 				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+					player.addHealthPotion();
+				}
 				// заменяем batch на slimeBatch
 				slimeBatch.begin();
 				for (Damager enemy : enemies) {
@@ -560,6 +563,8 @@ public class PixelGame extends ApplicationAdapter {
 				String healthPotionText = "Health Potions: " + player.getNumHealthPotions();
 				coinPotionFont.draw(uiBatch, healthPotionText, 10, Gdx.graphics.getHeight() - 40);
 
+				String currentDamage = "Current Damage: " + player.getDamage();
+				coinPotionFont.draw(uiBatch, currentDamage, 10, Gdx.graphics.getHeight() - 70);
 				uiBatch.end();
 
 				for (int i = enemies.size - 1; i >= 0; i--) {
