@@ -19,10 +19,17 @@ public class Enemy implements Damager {
     protected int health;
 
     protected Player player;
-
+    protected boolean isMoving; // добавляем переменную isMoving
     public Enemy(int damage, Player player) {
         this.damage = damage;
         this.player = player;
+    }
+    public boolean isMoving() { // добавляем геттер для isMoving
+        return isMoving;
+    }
+
+    public void setMoving(boolean moving) { // добавляем сеттер для isMoving
+        isMoving = moving;
     }
     @Override
     public int getDamage() {

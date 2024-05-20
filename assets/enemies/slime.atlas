@@ -2,7 +2,7 @@ slime.png
 size:256,32
 repeat:none
 back1
-bounds:110,2,16,16
+bounds:92,2,16,16
 back2
 bounds:56,2,16,16
 front1
@@ -16,4 +16,4 @@ bounds:74,2,16,16
 right1
 bounds:20,2,16,16
 right2
-bounds:92,2,16,16
+bounds:110,2,16,16

@@ -34,7 +34,7 @@ prettyPrint=false
 legacyOutput=false
 
 scaleFactors=[{suffix:"",factor:1,resampling:bicubic}]
-inputFiles=[{path:enemies/slime_textures/front1.png,type:Input,regionName:null},{path:enemies/slime_textures/front2.png,type:Input,regionName:null},{path:enemies/slime_textures/left1.png,type:Input,regionName:null},{path:enemies/slime_textures/left2.png,type:Input,regionName:null},{path:enemies/slime_textures/right1.png,type:Input,regionName:null},{path:enemies/slime_textures/right2.png,type:Input,regionName:null},{path:enemies/slime_textures/back1.png,type:Input,regionName:null},{path:enemies/slime_textures/back2.png,type:Input,regionName:null}]
+inputFiles=[{path:slime_textures/back1.png,type:Input,regionName:null},{path:slime_textures/back2.png,type:Input,regionName:null},{path:slime_textures/front1.png,type:Input,regionName:null},{path:slime_textures/front2.png,type:Input,regionName:null},{path:slime_textures/left1.png,type:Input,regionName:null},{path:slime_textures/left2.png,type:Input,regionName:null},{path:slime_textures/right1.png,type:Input,regionName:null},{path:slime_textures/right2.png,type:Input,regionName:null}]
 keepInputFileExtensions=false
 
 

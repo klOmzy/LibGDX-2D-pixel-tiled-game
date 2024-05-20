@@ -20,7 +20,7 @@ public class Mage extends NPC {
     private boolean isDialogueOpen;
     private DialogueBox dialogueBox;
     private DialogueManager dialogueManager;
-    private static final int HEALTH_POTION_PRICE = 25;
+    private static final int HEALTH_POTION_PRICE = 10;
     private Coin playerCoins;
     public Mage(TextureAtlas atlas, Vector2 position, Player player, BitmapFont dialogFont, DialogueBox  dialogueBox, DialogueManager dialogueManager) {
         super();

@@ -55,7 +55,7 @@ public class Player implements Damageable, Healable {
         this.spawnY = spawnY;
         this.collisionLayers = collisionLayers;
         this.camera = camera;
-        this.damage = 10; // инициализируем переменную damage значением 10 (например)
+        this.damage = 5; // инициализируем переменную damage значением 10 (например)
         this.coins = new Coin();
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);

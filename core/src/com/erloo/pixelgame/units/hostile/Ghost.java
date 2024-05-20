@@ -33,6 +33,11 @@ public class Ghost extends Enemy implements Damageable {
     private Pathfinder pathfinder;
     private Grid grid;
     private Player player;
+    private TextureRegion frontFrame;
+    private TextureRegion backFrame;
+    private TextureRegion leftFrame;
+    private TextureRegion rightFrame;
+
     public Ghost(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
@@ -41,15 +46,18 @@ public class Ghost extends Enemy implements Damageable {
         this.collisionLayers = collisionLayers;
         this.grid = grid;
         this.player = player;
-        viewRadius = 50f; // Задайте нужное значение радиуса обзора
+        viewRadius = 60f; // Задайте нужное значение радиуса обзора
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-        health = 30; // устанавливаем максимальное здоровье
+        health = 100; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
     }
 
     public void update(float delta) {
+        boolean wasMoving = isMoving(); // сохраняем предыдущее значение isMoving
+        isMoving = false; // сбрасываем isMoving в false
+
         setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
@@ -58,30 +66,30 @@ public class Ghost extends Enemy implements Damageable {
                     Node nextNode = path.get(0);
                     Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
                     Vector2 direction = nextPosition.cpy().sub(position).nor();
-                    float speed = 40f;
+                    float speed = 60f;
 
                     float newX = position.x;
                     float newY = position.y;
 
                     // Move along X-axis
                     newX += direction.x * speed * delta;
-//                    position.x = newX;
+                    position.x = newX;
 
-                    if (!isCellOccupied(newX, position.y)) {
-                        position.x = newX;
-                    } else {
-                        System.out.println("Slime hit an obstacle!");
-                    }
-
-                    // Move along Y-axis
                     newY += direction.y * speed * delta;
-//                    position.y = newY;
+                    position.y = newY;
 
-                    if (!isCellOccupied(position.x, newY)) {
-                        position.y = newY;
-                    } else {
-                        System.out.println("Slime hit an obstacle!");
-                    }
+//                    if (!isCellOccupied(newX, position.y)) {
+//                        position.x = newX;
+//                    } else {
+//                        System.out.println("Slime hit an obstacle!");
+//                    }
+
+
+//                    if (!isCellOccupied(position.x, newY)) {
+//                        position.y = newY;
+//                    } else {
+//                        System.out.println("Slime hit an obstacle!");
+//                    }
 
                     // Update the current animation based on the direction of movement
                     if (Math.abs(direction.x) > Math.abs(direction.y)) {
@@ -101,19 +109,24 @@ public class Ghost extends Enemy implements Damageable {
                     if (position.epsilonEquals(nextPosition, 1f)) {
                         path.remove(0);
                     }
+
+                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
                 }
             } else {
                 if (!position.epsilonEquals(spawnPosition, 1f)) {
                     Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 40f;
+                    float speed = 60f;
 
                     float newX = position.x + direction.x * speed * delta;
                     float newY = position.y + direction.y * speed * delta;
 
-                    if (!isCellOccupied(newX, newY)) {
-                        position.x = newX;
-                        position.y = newY;
-                    }
+                    position.x = newX;
+                    position.y = newY;
+
+//                    if (!isCellOccupied(newX, newY)) {
+//                        position.x = newX;
+//                        position.y = newY;
+//                    }
 
                     // Update the current animation based on the direction of movement
                     if (Math.abs(direction.x) > Math.abs(direction.y)) {
@@ -129,16 +142,40 @@ public class Ghost extends Enemy implements Damageable {
                             currentAnimation = frontAnimation;
                         }
                     }
+
+                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
                 } else {
                     currentAnimation = frontAnimation;
                 }
             }
         }
+
+        if (wasMoving != isMoving()) { // обновляем stateTime только при изменении значения isMoving
+            stateTime = 0;
+        }
     }
 
     public void render(SpriteBatch ghostBatch) {
         stateTime += Gdx.graphics.getDeltaTime();
-        currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+
+        if (isCollidingWithPlayer) {
+            if (currentAnimation == frontAnimation) {
+                currentFrame = frontFrame;
+            } else if (currentAnimation == backAnimation) {
+                currentFrame = backFrame;
+            } else if (currentAnimation == leftAnimation) {
+                currentFrame = leftFrame;
+            } else if (currentAnimation == rightAnimation) {
+                currentFrame = rightFrame;
+            }
+        } else {
+            if (isMoving()) { // обновляем анимацию только при движении
+                currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+            } else {
+                // устанавливаем первый кадр frontAnimation при остановке
+                currentFrame = frontAnimation.getKeyFrame(0);
+            }
+        }
 
         int ghostWidth = currentFrame.getRegionWidth();
         int ghostHeight = currentFrame.getRegionHeight();
@@ -147,10 +184,11 @@ public class Ghost extends Enemy implements Damageable {
         ghostBatch.draw(currentFrame, position.x - ghostWidth / 2, position.y - ghostHeight / 2);
     }
     public void checkCollisionWithPlayer(Player player) {
-        Rectangle slimeRect = getBoundingRectangle();
+        Rectangle ghostRect = getBoundingRectangle();
         Rectangle playerRect = player.getBoundingRectangle();
-        if (Intersector.overlaps(slimeRect, playerRect)) {
+        if (Intersector.overlaps(ghostRect, playerRect)) {
             isCollidingWithPlayer = true;
+            isChasing = false;
         } else {
             isCollidingWithPlayer = false;
         }
@@ -169,6 +207,11 @@ public class Ghost extends Enemy implements Damageable {
         return false;
     }
 
+    @Override
+    public void reward(){
+        int COIN_REWARD = 50;
+        player.getCoins().addCoins(COIN_REWARD);
+    }
     public void checkTargetInView(Vector2 target) {
         if (position.dst(target) <= viewRadius) {
             isChasing = true;
@@ -176,6 +219,9 @@ public class Ghost extends Enemy implements Damageable {
         } else {
             isChasing = false;
         }
+    }
+    public int getHealth() {
+        return health;
     }
 
     public Rectangle getBoundingRectangle() {
@@ -207,6 +253,13 @@ public class Ghost extends Enemy implements Damageable {
         frontFrames.add(atlas.findRegion("front1"));
         frontFrames.add(atlas.findRegion("front2"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
+
+        // Инициализируем переменные для хранения первых кадров каждой анимации
+        frontFrame = frontFrames.get(0);
+        backFrame = backFrames.get(0);
+        leftFrame = leftFrames.get(0);
+        rightFrame = rightFrames.get(0);
+
         currentFrame = frontAnimation.getKeyFrame(0);
     }
 

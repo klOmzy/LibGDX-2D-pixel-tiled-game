@@ -33,6 +33,11 @@ public class Slime extends Enemy implements Damageable {
     private Pathfinder pathfinder;
     private Grid grid;
     private Player player;
+    private TextureRegion frontFrame;
+    private TextureRegion backFrame;
+    private TextureRegion leftFrame;
+    private TextureRegion rightFrame;
+
     public Slime(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
@@ -41,7 +46,7 @@ public class Slime extends Enemy implements Damageable {
         this.collisionLayers = collisionLayers;
         this.grid = grid;
         this.player = player;
-        viewRadius = 100f;
+        viewRadius = 60f;
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
@@ -50,6 +55,9 @@ public class Slime extends Enemy implements Damageable {
     }
 
     public void update(float delta) {
+        boolean wasMoving = isMoving(); // сохраняем предыдущее значение isMoving
+        isMoving = false; // сбрасываем isMoving в false
+
         setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
@@ -67,15 +75,15 @@ public class Slime extends Enemy implements Damageable {
                     newX += direction.x * speed * delta;
                     position.x = newX;
 
+                    newY += direction.y * speed * delta;
+                    position.y = newY;
+
 //                    if (!isCellOccupied(newX, position.y)) {
 //                        position.x = newX;
 //                    } else {
 //                        System.out.println("Slime hit an obstacle!");
 //                    }
 
-                    // Move along Y-axis
-                    newY += direction.y * speed * delta;
-                    position.y = newY;
 
 //                    if (!isCellOccupied(position.x, newY)) {
 //                        position.y = newY;
@@ -101,6 +109,8 @@ public class Slime extends Enemy implements Damageable {
                     if (position.epsilonEquals(nextPosition, 1f)) {
                         path.remove(0);
                     }
+
+                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
                 }
             } else {
                 if (!position.epsilonEquals(spawnPosition, 1f)) {
@@ -110,10 +120,13 @@ public class Slime extends Enemy implements Damageable {
                     float newX = position.x + direction.x * speed * delta;
                     float newY = position.y + direction.y * speed * delta;
 
-                    if (!isCellOccupied(newX, newY)) {
-                        position.x = newX;
-                        position.y = newY;
-                    }
+                    position.x = newX;
+                    position.y = newY;
+
+//                    if (!isCellOccupied(newX, newY)) {
+//                        position.x = newX;
+//                        position.y = newY;
+//                    }
 
                     // Update the current animation based on the direction of movement
                     if (Math.abs(direction.x) > Math.abs(direction.y)) {
@@ -129,16 +142,40 @@ public class Slime extends Enemy implements Damageable {
                             currentAnimation = frontAnimation;
                         }
                     }
+
+                    isMoving = true; // устанавливаем isMoving в true, если враг двигается
                 } else {
                     currentAnimation = frontAnimation;
                 }
             }
         }
+
+        if (wasMoving != isMoving()) { // обновляем stateTime только при изменении значения isMoving
+            stateTime = 0;
+        }
     }
 
     public void render(SpriteBatch slimeBatch) {
         stateTime += Gdx.graphics.getDeltaTime();
-        currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+
+        if (isCollidingWithPlayer) {
+            if (currentAnimation == frontAnimation) {
+                currentFrame = frontFrame;
+            } else if (currentAnimation == backAnimation) {
+                currentFrame = backFrame;
+            } else if (currentAnimation == leftAnimation) {
+                currentFrame = leftFrame;
+            } else if (currentAnimation == rightAnimation) {
+                currentFrame = rightFrame;
+            }
+        } else {
+            if (isMoving()) { // обновляем анимацию только при движении
+                currentFrame = currentAnimation.getKeyFrame(stateTime, true);
+            } else {
+                // устанавливаем первый кадр frontAnimation при остановке
+                currentFrame = frontAnimation.getKeyFrame(0);
+            }
+        }
 
         int slimeWidth = currentFrame.getRegionWidth();
         int slimeHeight = currentFrame.getRegionHeight();
@@ -146,10 +183,20 @@ public class Slime extends Enemy implements Damageable {
         blinking(slimeBatch);
         slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
     }
-    public int getSlimeWidth() {
+    public void setMoving(boolean moving) { // переопределяем сеттер для isMoving в классе Slime
+        super.setMoving(moving);
+    }
+    public float getPositionX() {
+        return position.x;
+    }
+
+    public float getPositionY() {
+        return position.y;
+    }
+    public int getWidth() {
         return currentFrame.getRegionWidth();
     }
-    public int getSlimeHeight() {
+    public int getHeight() {
         return currentFrame.getRegionHeight();
     }
     public void checkCollisionWithPlayer(Player player) {
@@ -157,6 +204,7 @@ public class Slime extends Enemy implements Damageable {
         Rectangle playerRect = player.getBoundingRectangle();
         if (Intersector.overlaps(slimeRect, playerRect)) {
             isCollidingWithPlayer = true;
+            isChasing = false;
         } else {
             isCollidingWithPlayer = false;
         }
@@ -222,8 +270,16 @@ public class Slime extends Enemy implements Damageable {
         frontFrames.add(atlas.findRegion("front1"));
         frontFrames.add(atlas.findRegion("front2"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
+
+        // Инициализируем переменные для хранения первых кадров каждой анимации
+        frontFrame = frontFrames.get(0);
+        backFrame = backFrames.get(0);
+        leftFrame = leftFrames.get(0);
+        rightFrame = rightFrames.get(0);
+
         currentFrame = frontAnimation.getKeyFrame(0);
     }
+
 
     public Vector2 getSpawnPosition() {
         return spawnPosition;

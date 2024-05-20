@@ -2,12 +2,8 @@ package com.erloo.pixelgame;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
@@ -15,7 +11,6 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
@@ -35,6 +30,8 @@ import com.erloo.pixelgame.units.Alice;
 import com.erloo.pixelgame.units.Mage;
 import com.erloo.pixelgame.units.Merchant;
 import com.erloo.pixelgame.units.hostile.Ghost;
+import com.erloo.pixelgame.units.hostile.Golem;
+import com.erloo.pixelgame.units.hostile.Pillager;
 import com.erloo.pixelgame.units.hostile.Slime;
 import java.util.HashMap;
 
@@ -55,6 +52,7 @@ public class PixelGame extends ApplicationAdapter {
 	private float spawnY;
 	private HealthBar healthBar;
 	private BitmapFont healthFont;
+	private BitmapFont unitsHealthFont;
 	private BitmapFont coinPotionFont;
 	private BitmapFont dialogFont;
 	private ShapeRenderer shapeRenderer;
@@ -62,9 +60,13 @@ public class PixelGame extends ApplicationAdapter {
 	private Array<Damager> enemies;
 	private SpriteBatch slimeBatch; // добавляем новый SpriteBatch
 	private SpriteBatch ghostBatch; // Новый SpriteBatch для рендера призраков
+	private SpriteBatch pillagerBatch; // Новый SpriteBatch для рендера призраков
+	private SpriteBatch golemBatch; // Новый SpriteBatch для рендера призраков
 	private SpriteBatch npcBatch;
 	private HashMap<Slime, Float> slimeDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 	private HashMap<Ghost, Float> ghostDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
+	private HashMap<Pillager, Float> pillagerDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
+	private HashMap<Golem, Float> golemDeathTimes = new HashMap<>(); // добавляем переменную для хранения времени смерти слайма
 	private Grid grid;
 	private TextureAtlas aliceAtlas;
 	private TextureAtlas mageAtlas;
@@ -118,6 +120,8 @@ public class PixelGame extends ApplicationAdapter {
 		slimeBatch = new SpriteBatch(); // инициализируем новый SpriteBatch
 		uiBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		ghostBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
+		pillagerBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
+		golemBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		npcBatch = new SpriteBatch();
 		// Устанавливаем размеры камеры в соответствии с размерами окна
 		camera.setToOrtho(false, viewportWidth, viewportHeight);
@@ -171,12 +175,32 @@ public class PixelGame extends ApplicationAdapter {
 				float spawnX = object.getProperties().get("x", Float.class);
 				float spawnY = object.getProperties().get("y", Float.class);
 				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
-				Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers, grid, player);
+				Ghost ghost = new Ghost(ghosts, 35, spawnPosition, collisionLayers, grid, player);
 				enemies.add(ghost);
 			}
 		}
+		TextureAtlas pillagers = new TextureAtlas("enemies/pillager.atlas");
+		for (MapObject object : spawnLayer.getObjects()) {
+			if (object.getName().startsWith("Pillager")) {
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
+				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+				Pillager pillager = new Pillager(pillagers, 15, spawnPosition, collisionLayers, grid, player);
+				enemies.add(pillager);
+			}
+		}
+		TextureAtlas golems = new TextureAtlas("enemies/tilted_golem.atlas");
+		for (MapObject object : spawnLayer.getObjects()) {
+			if (object.getName().startsWith("Golem")) {
+				float spawnX = object.getProperties().get("x", Float.class);
+				float spawnY = object.getProperties().get("y", Float.class);
+				Vector2 spawnPosition = new Vector2(spawnX, spawnY);
+				Golem golem = new Golem (golems, 50, spawnPosition, collisionLayers, grid, player);
+				enemies.add(golem);
+			}
+		}
 		// Создаем генератор шрифтов из файла TTF
-		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/SedanSC-Regular.ttf"));
+		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/arial.ttf"));
 
 		// Настраиваем параметры шрифта
 		FreeTypeFontParameter parameter = new FreeTypeFontParameter();
@@ -186,11 +210,19 @@ public class PixelGame extends ApplicationAdapter {
 		// Генерируем BitmapFont из файла TTF
 		healthFont = generator.generateFont(parameter);
 
+		// Настраиваем параметры шрифта
+		FreeTypeFontParameter unitsHealthParameter = new FreeTypeFontParameter();
+		unitsHealthParameter.size = 16;
+		unitsHealthParameter.color = Color.WHITE;
+
+		// Генерируем BitmapFont из файла TTF
+		unitsHealthFont = generator.generateFont(unitsHealthParameter);
+
 		FreeTypeFontParameter coinparameter = new FreeTypeFontParameter();
 		coinparameter.size = 24;
 		coinparameter.color = Color.RED;
 
-		coinPotionFont =  generator.generateFont(coinparameter);
+		coinPotionFont = generator.generateFont(coinparameter);
 
 		// Настраиваем параметры шрифта
 		FreeTypeFontParameter dialog = new FreeTypeFontParameter();
@@ -373,6 +405,8 @@ public class PixelGame extends ApplicationAdapter {
 				batch.setProjectionMatrix(camera.combined);
 				slimeBatch.setProjectionMatrix(camera.combined);
 				ghostBatch.setProjectionMatrix(camera.combined);
+				pillagerBatch.setProjectionMatrix(camera.combined);
+				golemBatch.setProjectionMatrix(camera.combined);
 				npcBatch.setProjectionMatrix(camera.combined);
 
 				Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
@@ -393,6 +427,22 @@ public class PixelGame extends ApplicationAdapter {
 					}
 				}
 
+				Array<Pillager> temporaryPillagers = new Array<Pillager>(pillagerDeathTimes.keySet().toArray(new Pillager[0]));
+				for (Pillager pillager : temporaryPillagers) {
+					pillagerDeathTimes.put(pillager, pillagerDeathTimes.get(pillager) + Gdx.graphics.getDeltaTime());
+					if (pillagerDeathTimes.get(pillager) >= 10) { // если прошло 5 секунд после смерти слайма
+						pillagerDeathTimes.remove(pillager); // удаляем слайма из списка мертвых слаймов
+						spawnPillager(pillager.getSpawnPosition()); // респавним слайма
+					}
+				}
+				Array<Golem> temporaryGolems = new Array<Golem>(golemDeathTimes.keySet().toArray(new Golem[0]));
+				for (Golem golem : temporaryGolems) {
+					golemDeathTimes.put(golem, golemDeathTimes.get(golem) + Gdx.graphics.getDeltaTime());
+					if (golemDeathTimes.get(golem) >= 10) { // если прошло 5 секунд после смерти слайма
+						golemDeathTimes.remove(golem); // удаляем слайма из списка мертвых слаймов
+						spawnGolem(golem.getSpawnPosition()); // респавним слайма
+					}
+				}
 				renderer.setView(camera);
 				renderer.render();
 
@@ -427,6 +477,12 @@ public class PixelGame extends ApplicationAdapter {
 				if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
 					player.takeDamage(70);
 				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.I)) {
+					player.upgradeMaxHealth();
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.O)) {
+					player.upgradeDamage();
+				}
 				// заменяем batch на slimeBatch
 				slimeBatch.begin();
 				for (Damager enemy : enemies) {
@@ -452,6 +508,29 @@ public class PixelGame extends ApplicationAdapter {
 				}
 				ghostBatch.end();
 
+				pillagerBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Pillager) {
+						Pillager pillager = (Pillager) enemy;
+						pillager.checkCollisionWithPlayer(player);
+						pillager.update(Gdx.graphics.getDeltaTime());
+						pillager.checkTargetInView(player.getPosition());
+						pillager.render(pillagerBatch);
+					}
+				}
+				pillagerBatch.end();
+
+				golemBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Golem) {
+						Golem golem = (Golem) enemy;
+						golem.checkCollisionWithPlayer(player);
+						golem.update(Gdx.graphics.getDeltaTime());
+						golem.checkTargetInView(player.getPosition());
+						golem.render(golemBatch);
+					}
+				}
+				golemBatch.end();
 				checkCollisions(); // добавьте эту строку
 
 				batch.begin();
@@ -459,17 +538,6 @@ public class PixelGame extends ApplicationAdapter {
 				batch.end();
 
 				uiBatch.begin();
-				for (Damager enemy : enemies) {
-					if (enemy instanceof Slime) {
-						Slime slime = (Slime) enemy;
-						Vector2 position = slime.getPosition();
-						String healthText = String.valueOf(slime.getHealth());
-						// Check if the slime is within the camera's viewport
-						if (camera.frustum.pointInFrustum(position.x, position.y, 0)) {
-							healthFont.draw(uiBatch, healthText, 200, 200);
-						}
-					}
-				}
 				if (alice.isActive()) {
 					dialogueBox.setDialogueOpen(true);
 					dialogueBox.render(uiBatch);
@@ -503,6 +571,14 @@ public class PixelGame extends ApplicationAdapter {
 					else if (enemy instanceof Ghost && ((Ghost) enemy).isDead()) {
 						enemies.removeIndex(i);
 						ghostDeathTimes.put((Ghost) enemy, 0f); // добавляем время смерти слайма в список
+					}
+					else if (enemy instanceof Pillager && ((Pillager) enemy).isDead()) {
+						enemies.removeIndex(i);
+						pillagerDeathTimes.put((Pillager) enemy, 0f); // добавляем время смерти слайма в список
+					}
+					else if (enemy instanceof Golem && ((Golem) enemy).isDead()) {
+						enemies.removeIndex(i);
+						golemDeathTimes.put((Golem) enemy, 0f); // добавляем время смерти слайма в список
 					}
 				}
 				break;
@@ -547,11 +623,24 @@ public class PixelGame extends ApplicationAdapter {
 	private void spawnGhost(Vector2 spawnPosition) {
 		System.out.println("Spawning ghost at " + spawnPosition);
 		TextureAtlas ghosts = new TextureAtlas("enemies/ghost.atlas");
-		Ghost ghost = new Ghost(ghosts, 5, spawnPosition, collisionLayers, grid, player);
+		Ghost ghost = new Ghost(ghosts, 35, spawnPosition, collisionLayers, grid, player);
 		enemies.add(ghost);
 		slimeDeathTimes.remove(ghost); // удаляем слайма из списка мертвых слаймов
 	}
-
+	private void spawnPillager(Vector2 spawnPosition) {
+		System.out.println("Spawning pillager at " + spawnPosition);
+		TextureAtlas pillagers = new TextureAtlas("enemies/pillager.atlas");
+		Pillager pillager = new Pillager(pillagers, 15, spawnPosition, collisionLayers, grid, player);
+		enemies.add(pillager);
+		pillagerDeathTimes.remove(pillager); // удаляем слайма из списка мертвых слаймов
+	}
+	private void spawnGolem(Vector2 spawnPosition) {
+		System.out.println("Spawning golem at " + spawnPosition);
+		TextureAtlas golems = new TextureAtlas("enemies/tilted_golem.atlas");
+		Golem golem = new Golem(golems, 50, spawnPosition, collisionLayers, grid, player);
+		enemies.add(golem);
+		golemDeathTimes.remove(golem); // удаляем слайма из списка мертвых слаймов
+	}
 	private void checkCollisions() {
 		Rectangle playerRect = player.getBoundingRectangle();
 		for (Damager enemy : enemies) {
@@ -571,14 +660,12 @@ public class PixelGame extends ApplicationAdapter {
 						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
 						player.stopMoving();
 						slime.stopMoving();
-
 					}
 				}
-			}
-			if (enemy instanceof Ghost) {
+			} else if (enemy instanceof Ghost) {
 				Ghost ghost = (Ghost) enemy;
-				Rectangle slimeRect = ghost.getBoundingRectangle();
-				if (Intersector.overlaps(playerRect, slimeRect)) {
+				Rectangle ghostRect = ghost.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, ghostRect)) {
 					// Коллизия обнаружена
 					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
 						// Если клавиша space нажата, вызываем метод takeDamage для слайма
@@ -592,6 +679,40 @@ public class PixelGame extends ApplicationAdapter {
 						ghost.stopMoving();
 					}
 				}
+			} else if (enemy instanceof Pillager) {
+				Pillager pillager = (Pillager) enemy;
+				Rectangle pillagerRect = pillager.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, pillagerRect)) {
+					// Коллизия обнаружена
+					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+						// Если клавиша space нажата, вызываем метод takeDamage для слайма
+						pillager.takeDamage(player.getDamage());
+						player.stopMoving();
+						pillager.stopMoving();
+					} else {
+						player.takeDamage(pillager.getDamage());
+						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+						player.stopMoving();
+						pillager.stopMoving();
+					}
+				}
+			} else if (enemy instanceof Golem) {
+				Golem golem = (Golem) enemy;
+				Rectangle golemRect = golem.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, golemRect)) {
+					// Коллизия обнаружена
+					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+						// Если клавиша space нажата, вызываем метод takeDamage для слайма
+						golem.takeDamage(player.getDamage());
+						player.stopMoving();
+						golem.stopMoving();
+					} else {
+						player.takeDamage(golem.getDamage());
+						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+						player.stopMoving();
+						golem.stopMoving();
+					}
+				}
 			}
 		}
 	}
@@ -603,10 +724,13 @@ public class PixelGame extends ApplicationAdapter {
 		renderer.dispose();
 		playerAtlas.dispose();
 		healthFont.dispose();
+		unitsHealthFont.dispose();
 		dialogFont.dispose();
 		deathFont.dispose(); // Добавляем dispose для deathFont
 		slimeBatch.dispose(); // освобождаем ресурсы нового SpriteBatch
 		ghostBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
+		pillagerBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
+		golemBatch.dispose(); // Освобождаем ресурсы нового SpriteBatch
 		npcBatch.dispose();
 		coinPotionFont.dispose();
 	}
