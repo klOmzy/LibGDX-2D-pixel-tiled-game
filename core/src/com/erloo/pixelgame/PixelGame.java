@@ -40,7 +40,9 @@ public class PixelGame extends ApplicationAdapter {
 	private SpriteBatch batch;
 	private SpriteBatch uiBatch; // Новый SpriteBatch для UI-элементов
 	private TiledMap map;
-	private OrthogonalTiledMapRenderer renderer;
+	private TiledMap mapBackground;
+	private OrthogonalTiledMapRenderer backgroundRenderer ;
+	private OrthogonalTiledMapRenderer foregroundRenderer ;
 	private Player player;
 	private TextureAtlas playerAtlas;
 	private float mapWidth;
@@ -83,7 +85,6 @@ public class PixelGame extends ApplicationAdapter {
 	private Menu menu;
 	private int selectedMenuIndex;
 	private Coin playerCoins;
-	private static final int HEALTH_POTION_PRICE = 50;
 
 	public enum GameState {
 		MENU,
@@ -99,6 +100,8 @@ public class PixelGame extends ApplicationAdapter {
 		menu = new Menu(this, menuOptions, selectedMenuIndex);
 		playerCoins = new Coin();
 		map = new TmxMapLoader().load("map.tmx");
+		mapBackground = new TmxMapLoader().load("backgroundmap.tmx");
+
 		collisionLayers = new Array<>();
 		for (MapLayer layer : map.getLayers()) {
 			if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
@@ -134,7 +137,8 @@ public class PixelGame extends ApplicationAdapter {
 			throw new RuntimeException("Spawn point not found");
 		}
 
-		renderer = new OrthogonalTiledMapRenderer(map);
+		backgroundRenderer = new OrthogonalTiledMapRenderer(mapBackground);
+		foregroundRenderer = new OrthogonalTiledMapRenderer(map);
 
 		playerAtlas = new TextureAtlas("player/player1.atlas"); // load the player atlas
 		player = new Player(playerAtlas, collisionLayers, camera, spawnX, spawnY);
@@ -219,7 +223,7 @@ public class PixelGame extends ApplicationAdapter {
 		unitsHealthFont = generator.generateFont(unitsHealthParameter);
 
 		FreeTypeFontParameter coinparameter = new FreeTypeFontParameter();
-		coinparameter.size = 24;
+		coinparameter.size = 16;
 		coinparameter.color = Color.RED;
 
 		coinPotionFont = generator.generateFont(coinparameter);
@@ -443,8 +447,8 @@ public class PixelGame extends ApplicationAdapter {
 						spawnGolem(golem.getSpawnPosition()); // респавним слайма
 					}
 				}
-				renderer.setView(camera);
-				renderer.render();
+				foregroundRenderer.setView(camera);
+				foregroundRenderer.render();
 
 				shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 				healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
@@ -458,6 +462,9 @@ public class PixelGame extends ApplicationAdapter {
 				merchant.update(Gdx.graphics.getDeltaTime());
 				merchant.render(npcBatch);
 				npcBatch.end();
+
+				backgroundRenderer.setView(camera);
+				backgroundRenderer.render();
 
 				if (alice.isNearPlayer() && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
 					alice.interact();
@@ -726,7 +733,8 @@ public class PixelGame extends ApplicationAdapter {
 	public void dispose() {
 		batch.dispose();
 		map.dispose();
-		renderer.dispose();
+		foregroundRenderer.dispose();
+		backgroundRenderer.dispose();
 		playerAtlas.dispose();
 		healthFont.dispose();
 		unitsHealthFont.dispose();
