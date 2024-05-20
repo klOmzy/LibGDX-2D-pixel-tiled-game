@@ -221,7 +221,7 @@ public class Golem extends Enemy implements Damageable {
     }
 
     public Rectangle getBoundingRectangle() {
-        return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
+        return new Rectangle(position.x - 8, position.y - 16, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
     }
 
     private Animation<TextureRegion> leftAnimation;
@@ -233,21 +233,29 @@ public class Golem extends Enemy implements Damageable {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
         leftFrames.add(atlas.findRegion("left1"));
         leftFrames.add(atlas.findRegion("left2"));
+        leftFrames.add(atlas.findRegion("left3"));
+        leftFrames.add(atlas.findRegion("left4"));
         leftAnimation = new Animation<>(0.3f, leftFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> rightFrames = new Array<>();
         rightFrames.add(atlas.findRegion("right1"));
         rightFrames.add(atlas.findRegion("right2"));
+        rightFrames.add(atlas.findRegion("right3"));
+        rightFrames.add(atlas.findRegion("right4"));
         rightAnimation = new Animation<>(0.3f, rightFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> backFrames = new Array<>();
         backFrames.add(atlas.findRegion("back1"));
         backFrames.add(atlas.findRegion("back2"));
+        backFrames.add(atlas.findRegion("back3"));
+        backFrames.add(atlas.findRegion("back4"));
         backAnimation = new Animation<>(0.3f, backFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> frontFrames = new Array<>();
         frontFrames.add(atlas.findRegion("front1"));
         frontFrames.add(atlas.findRegion("front2"));
+        frontFrames.add(atlas.findRegion("front3"));
+        frontFrames.add(atlas.findRegion("front4"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
 
         // Инициализируем переменные для хранения первых кадров каждой анимации

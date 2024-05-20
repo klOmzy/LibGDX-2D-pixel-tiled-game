@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="96" height="72" tilewidth="16" tileheight="16" infinite="0" nextlayerid="32" nextobjectid="70">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="96" height="72" tilewidth="16" tileheight="16" infinite="0" nextlayerid="32" nextobjectid="72">
  <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="1755" columns="27">
   <image source="sprite.png" width="432" height="1040"/>
  </tileset>
@@ -603,6 +603,7 @@
   <object id="67" name="Golem3Spawn" x="664.833" y="937.5" width="1" height="1"/>
   <object id="68" name="Golem4Spawn" x="832.167" y="911.5" width="1" height="1"/>
   <object id="69" name="BossSpawn" x="306.5" y="974" width="1" height="1"/>
+  <object id="71" name="Golem4Spawn" x="972.5" y="544.5" width="1" height="1"/>
  </objectgroup>
  <layer id="6" name="water" width="96" height="72">
   <properties>

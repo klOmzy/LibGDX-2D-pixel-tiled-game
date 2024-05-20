@@ -34,7 +34,7 @@ prettyPrint=false
 legacyOutput=false
 
 scaleFactors=[{suffix:"",factor:1,resampling:bicubic}]
-inputFiles=[{path:tilted_golem_textures/front1.png,type:Input,regionName:null},{path:tilted_golem_textures/front2.png,type:Input,regionName:null},{path:tilted_golem_textures/left1.png,type:Input,regionName:null},{path:tilted_golem_textures/left2.png,type:Input,regionName:null},{path:tilted_golem_textures/right1.png,type:Input,regionName:null},{path:tilted_golem_textures/right2.png,type:Input,regionName:null},{path:tilted_golem_textures/back1.png,type:Input,regionName:null},{path:tilted_golem_textures/back2.png,type:Input,regionName:null}]
+inputFiles=[{path:tilted_golem_textures/back1.png,type:Input,regionName:null},{path:tilted_golem_textures/back2.png,type:Input,regionName:null},{path:tilted_golem_textures/back3.png,type:Input,regionName:null},{path:tilted_golem_textures/back4.png,type:Input,regionName:null},{path:tilted_golem_textures/front1.png,type:Input,regionName:null},{path:tilted_golem_textures/front2.png,type:Input,regionName:null},{path:tilted_golem_textures/front3.png,type:Input,regionName:null},{path:tilted_golem_textures/front4.png,type:Input,regionName:null},{path:tilted_golem_textures/left1.png,type:Input,regionName:null},{path:tilted_golem_textures/left2.png,type:Input,regionName:null},{path:tilted_golem_textures/left3.png,type:Input,regionName:null},{path:tilted_golem_textures/left4.png,type:Input,regionName:null},{path:tilted_golem_textures/right1.png,type:Input,regionName:null},{path:tilted_golem_textures/right2.png,type:Input,regionName:null},{path:tilted_golem_textures/right3.png,type:Input,regionName:null},{path:tilted_golem_textures/right4.png,type:Input,regionName:null}]
 keepInputFileExtensions=false
 
 
