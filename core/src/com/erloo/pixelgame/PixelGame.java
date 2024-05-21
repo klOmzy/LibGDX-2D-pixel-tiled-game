@@ -37,6 +37,7 @@ import java.util.HashMap;
 
 public class PixelGame extends ApplicationAdapter {
 	private OrthographicCamera camera;
+	private OrthographicCamera cameraMap;
 	private SpriteBatch batch;
 	private SpriteBatch uiBatch; // Новый SpriteBatch для UI-элементов
 	private TiledMap map;
@@ -45,6 +46,7 @@ public class PixelGame extends ApplicationAdapter {
 	private OrthogonalTiledMapRenderer foregroundRenderer ;
 	private Player player;
 	private TextureAtlas playerAtlas;
+	private Texture mapTexture;
 	private float mapWidth;
 	private float mapHeight;
 	private float viewportWidth = 200;
@@ -85,7 +87,10 @@ public class PixelGame extends ApplicationAdapter {
 	private Menu menu;
 	private int selectedMenuIndex;
 	private Coin playerCoins;
-
+	private boolean showMap = false; // объявляем переменную showMap
+	private float initialMapX;
+	private float initialMapY;
+	private boolean initialMapPositionSet;
 	public enum GameState {
 		MENU,
 		PLAY,
@@ -100,6 +105,9 @@ public class PixelGame extends ApplicationAdapter {
 		menu = new Menu(this, menuOptions, selectedMenuIndex);
 		playerCoins = new Coin();
 		map = new TmxMapLoader().load("map.tmx");
+
+		mapTexture = new Texture(Gdx.files.internal("map.png"));
+
 		mapBackground = new TmxMapLoader().load("backgroundmap.tmx");
 
 		collisionLayers = new Array<>();
@@ -117,7 +125,9 @@ public class PixelGame extends ApplicationAdapter {
 
 		camera = new OrthographicCamera(viewportWidth, viewportHeight);
 		camera.position.set(viewportWidth, viewportHeight, 0);
-		camera.update();
+
+		cameraMap = new OrthographicCamera();
+		cameraMap.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
 		batch = new SpriteBatch();
 		slimeBatch = new SpriteBatch(); // инициализируем новый SpriteBatch
@@ -203,6 +213,9 @@ public class PixelGame extends ApplicationAdapter {
 				enemies.add(golem);
 			}
 		}
+
+		initialMapPositionSet = false;
+
 		// Создаем генератор шрифтов из файла TTF
 		FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fonts/arial.ttf"));
 
@@ -406,6 +419,9 @@ public class PixelGame extends ApplicationAdapter {
 				camera.position.set(cameraX, cameraY, 0);
 				camera.update();
 
+
+				cameraMap.update();
+
 				batch.setProjectionMatrix(camera.combined);
 				slimeBatch.setProjectionMatrix(camera.combined);
 				ghostBatch.setProjectionMatrix(camera.combined);
@@ -493,6 +509,7 @@ public class PixelGame extends ApplicationAdapter {
 				if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
 					player.addHealthPotion();
 				}
+
 				// заменяем batch на slimeBatch
 				slimeBatch.begin();
 				for (Damager enemy : enemies) {
@@ -592,6 +609,56 @@ public class PixelGame extends ApplicationAdapter {
 						enemies.removeIndex(i);
 						golemDeathTimes.put((Golem) enemy, 0f); // добавляем время смерти слайма в список
 					}
+				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.M)) { // проверяем нажатие клавиши M
+					showMap = !showMap; // меняем значение переменной showMap на противоположное
+					initialMapX = 866;
+					initialMapY = 633;
+					if (showMap && !initialMapPositionSet) {
+						cameraMap.position.set(initialMapX, initialMapY, 0);
+						initialMapPositionSet = true;
+					}
+				}
+
+				if (showMap) { // проверяем нажатие клавиши M
+					player.setPlayerActive(false);
+					if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
+						// перемещение карты при нажатой правой кнопке мыши
+						float newX = cameraMap.position.x - Gdx.input.getDeltaX();
+						float newY = cameraMap.position.y + Gdx.input.getDeltaY();
+
+						float halfWidth = Gdx.graphics.getWidth() / 2f;
+						float halfHeight = Gdx.graphics.getHeight() / 2f;
+
+						// Update the X coordinate
+						if (newX >= halfWidth && newX <= mapWidth - halfWidth) {
+							cameraMap.translate(-Gdx.input.getDeltaX(), 0);
+						}
+
+						// Update the Y coordinate
+						if (newY >= halfHeight && newY <= mapHeight - halfHeight) {
+							cameraMap.translate(0, Gdx.input.getDeltaY());
+						}
+					}
+
+
+//					if (Gdx.input.getDeltaY() != 0) {
+//						// отдаление и приближение карты при вращении колесика мыши
+//						float zoom = cameraMap.zoom;
+//						zoom += Gdx.input.getDeltaY() * 0.1f;
+//						if (zoom < 0.1f) zoom = 0.1f;
+//						if (zoom > 5f) zoom = 5f;
+//						cameraMap.zoom = zoom;
+//					}
+					SpriteBatch mapBatch = new SpriteBatch();
+					mapBatch.setProjectionMatrix(cameraMap.combined);
+					mapBatch.begin();
+					mapBatch.draw(mapTexture, 0, 0); // отображаем полную карту поверх всего
+					mapBatch.end();
+					mapBatch.dispose(); // освобождаем ресурсы SpriteBatch
+
+				} else {
+					player.setPlayerActive(true);
 				}
 				break;
 			case PAUSE:

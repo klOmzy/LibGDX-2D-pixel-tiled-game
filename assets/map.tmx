@@ -762,7 +762,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="23" name="EdgeCollision" width="96" height="72">
+ <layer id="23" name="EdgeCollision" width="96" height="72" visible="0">
   <properties>
    <property name="collision" type="bool" value="true"/>
   </properties>
