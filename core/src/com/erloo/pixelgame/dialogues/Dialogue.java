@@ -5,10 +5,21 @@ import com.badlogic.gdx.utils.Array;
 public class Dialogue {
     private String dialogueText;
     private Array<DialogueOption> options;
+    private float dialogueVerticalOffset;
+    private float optionsVerticalOffset;
 
-    public Dialogue(String dialogueText, Array<DialogueOption> options) {
+    public Dialogue(String dialogueText, Array<DialogueOption> options, float dialogueVerticalOffset, float optionsVerticalOffset) {
         this.dialogueText = dialogueText;
         this.options = options;
+        this.dialogueVerticalOffset = dialogueVerticalOffset;
+        this.optionsVerticalOffset = optionsVerticalOffset;
+    }
+
+    public float getDialogueVerticalOffset() {
+        return dialogueVerticalOffset;
+    }
+    public float getOptionsVerticalOffset() {
+        return optionsVerticalOffset;
     }
 
     public String getDialogueText() {

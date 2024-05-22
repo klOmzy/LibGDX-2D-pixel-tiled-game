@@ -29,10 +29,8 @@ import com.erloo.pixelgame.pathfinding.Node;
 import com.erloo.pixelgame.units.Alice;
 import com.erloo.pixelgame.units.Mage;
 import com.erloo.pixelgame.units.Merchant;
-import com.erloo.pixelgame.units.hostile.Ghost;
-import com.erloo.pixelgame.units.hostile.Golem;
-import com.erloo.pixelgame.units.hostile.Pillager;
-import com.erloo.pixelgame.units.hostile.Slime;
+import com.erloo.pixelgame.units.hostile.*;
+
 import java.util.HashMap;
 
 public class PixelGame extends ApplicationAdapter {
@@ -91,10 +89,15 @@ public class PixelGame extends ApplicationAdapter {
 	private float initialMapX;
 	private float initialMapY;
 	private boolean initialMapPositionSet;
+	private Dialogue currentDialogue;
+	private Boss boss;
+	private SpriteBatch bossBatch;
+
 	public enum GameState {
 		MENU,
 		PLAY,
-		PAUSE
+		PAUSE,
+		PAUSE_SPECIFIC
 	}
 
 	@Override
@@ -135,6 +138,7 @@ public class PixelGame extends ApplicationAdapter {
 		ghostBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		pillagerBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		golemBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
+		bossBatch = new SpriteBatch(); // Инициализируем новый SpriteBatch
 		npcBatch = new SpriteBatch();
 		// Устанавливаем размеры камеры в соответствии с размерами окна
 		camera.setToOrtho(false, viewportWidth, viewportHeight);
@@ -287,41 +291,17 @@ public class PixelGame extends ApplicationAdapter {
 		}
 		//
 		dialogueManager = new DialogueManager();
-		DialogueOption byeoption1 = new DialogueOption("Good bye!", null, null);
-
-		Array<DialogueOption> byeoption = new Array<>();
-		byeoption.add(byeoption1);
-
-		Dialogue rewardDialogue = new Dialogue("Yes, there is a great reward for the one who can \ndefeat the Dark Knight.", byeoption);
-		Dialogue knightDialogue = new Dialogue("The Dark Knight is a powerful and evil being. He \nwas once a human, but was corrupted by a dark \nforce.", byeoption);
-
-		DialogueOption option1 = new DialogueOption("I can handle it", null, null);
-		DialogueOption option2 = new DialogueOption("Is there any reward for doing that?", rewardDialogue, null);
-		DialogueOption option3 = new DialogueOption("Can you tell me more about that knight?", knightDialogue, null);
-
-		Array<DialogueOption> options = new Array<>();
-		options.add(option1);
-		options.add(option2);
-		options.add(option3);
-
-		Dialogue firstDialogue = new Dialogue("The world has been corrupted. The Dark Knight \nkeeps the whole world at bay. " +
-				"Humanity needs \nsomeone to defeat him.", options);
-
-		dialogueManager.addDialogue("alice_first_dialogue", firstDialogue);
-		dialogueManager.addDialogue("alice_reward_dialogue", rewardDialogue);
-		dialogueManager.addDialogue("alice_knight_dialogue", knightDialogue);
-
 
 		DialogueOption MageOption1Success = new DialogueOption("Thanks for a health potion!", null, null);
 		Array<DialogueOption> MageOptionsSuccess = new Array<>();
 		MageOptionsSuccess.add(MageOption1Success);
-		Dialogue mageDiaSuccess = new Dialogue("Thank you for your purchase!", MageOptionsSuccess);
+		Dialogue mageDiaSuccess = new Dialogue("Thank you for your purchase!", MageOptionsSuccess, 0f, 60f);
 		dialogueManager.addDialogue("mage_success", mageDiaSuccess);
 
 		DialogueOption MageOption1Fail = new DialogueOption("Oh, I'll be back later.", null, null);
 		Array<DialogueOption> MageOptionsFail = new Array<>();
 		MageOptionsFail.add(MageOption1Fail);
-		Dialogue mageDiaFail = new Dialogue("You don't have enough coins to buy a health potion.", MageOptionsFail);
+		Dialogue mageDiaFail = new Dialogue("You don't have enough coins to buy a health potion.", MageOptionsFail, 0f, 60f);
 		dialogueManager.addDialogue("mage_fail", mageDiaFail);
 
 		DialogueOption MageOption1 = new DialogueOption("Buy a health potion for 25 coins", null, () -> mage.purchaseHealthPotion());
@@ -331,7 +311,7 @@ public class PixelGame extends ApplicationAdapter {
 		MageOptions.add(MageOption1);
 		MageOptions.add(MageOption2);
 
-		Dialogue mageDia = new Dialogue("Welcome to my shop! I have health potions for sale. \nWould you like to buy one?", MageOptions);
+		Dialogue mageDia = new Dialogue("Welcome to my shop! I have health potions for sale. \nWould you like to buy one?", MageOptions, 0f, 60f);
 
 
 		dialogueManager.addDialogue("magefirst", mageDia);
@@ -339,20 +319,20 @@ public class PixelGame extends ApplicationAdapter {
 		DialogueOption MerchantOption1Success = new DialogueOption("Thanks for the upgrade!", null, null);
 		Array<DialogueOption> MerchantOptionsSuccess = new Array<>();
 		MerchantOptionsSuccess.add(MerchantOption1Success);
-		Dialogue merchantDiaSuccess = new Dialogue("Thank you for your purchase!", MerchantOptionsSuccess);
+		Dialogue merchantDiaSuccess = new Dialogue("Thank you for your purchase!", MerchantOptionsSuccess, 0f, 60f);
 		dialogueManager.addDialogue("merchant_success", merchantDiaSuccess);
 
 		DialogueOption MerchantOption1Fail = new DialogueOption("Oh, I'll be back later.", null, null);
 		Array<DialogueOption> MerchantOptionsFail = new Array<>();
 		MerchantOptionsFail.add(MerchantOption1Fail);
 
-		Dialogue merchantDiaFail1 = new Dialogue("You don't have enough coins to buy a HP upgrade.", MerchantOptionsFail);
+		Dialogue merchantDiaFail1 = new Dialogue("You don't have enough coins to buy a HP upgrade.", MerchantOptionsFail, 0f, 60f);
 		dialogueManager.addDialogue("merchant_fail1", merchantDiaFail1);
 
-		Dialogue merchantDiaFail2 = new Dialogue("You don't have enough coins to buy a \ndamage upgrade.", MerchantOptionsFail);
+		Dialogue merchantDiaFail2 = new Dialogue("You don't have enough coins to buy a damage upgrade.", MerchantOptionsFail, 0f, 60f);
 		dialogueManager.addDialogue("merchant_fail2", merchantDiaFail2);
 
-		DialogueOption MerchantOption1 = new DialogueOption("Buy a +25 HP for 25 coins", null, () -> merchant.purchaseUpgradeHP());
+		DialogueOption MerchantOption1 = new DialogueOption("Buy a +25 HP and +0.5 passive HP regeneration for 25 coins", null, () -> merchant.purchaseUpgradeHP());
 		DialogueOption MerchantOption2 = new DialogueOption("Buy a +5 damage for 25 coins", null, () -> merchant.purchaseUpgradeDamage());
 		DialogueOption MerchantOption3 = new DialogueOption("No thanks, maybe later", null, null);
 
@@ -361,7 +341,7 @@ public class PixelGame extends ApplicationAdapter {
 		MerchantOptions.add(MerchantOption2);
 		MerchantOptions.add(MerchantOption3);
 
-		Dialogue merchantDia = new Dialogue("Welcome to my shop! I can help you upgrade your \nstats!. Would you like some buffs?", MerchantOptions);
+		Dialogue merchantDia = new Dialogue("Welcome to my shop! I can help you upgrade your stats! \nWould you like some buffs?", MerchantOptions, 0f, 60f);
 
 
 		dialogueManager.addDialogue("merchantfirst", merchantDia);
@@ -375,6 +355,112 @@ public class PixelGame extends ApplicationAdapter {
 
 		merchantAtlas = new TextureAtlas("npc/merchant.atlas");
 		merchant = new Merchant(merchantAtlas, merchantSpawnPosition, player, dialogFont, dialogueBox, dialogueManager, playerCoins);
+
+		DialogueOption hostileoption1 = new DialogueOption("Got it!", null, null);
+		DialogueOption hostileoption2 = new DialogueOption("I wanna ask something more!", null, () -> dialogsSwitchFirstAlice());
+		DialogueOption hostileoption3 = new DialogueOption("I wanna ask more about hostile units!", null, () -> monstersDialog());
+
+		Array<DialogueOption> hostileoptions = new Array<>();
+		hostileoptions.add(hostileoption1);
+		hostileoptions.add(hostileoption2);
+		hostileoptions.add(hostileoption3);
+
+		Dialogue slimesDial = new Dialogue("The Slime is the simplest and weakest hostile creature. He has only \n5 damage and 30 health. H" +
+				"is movement speed is slow. The reward \nfor killing this creature is 5 coins.", hostileoptions , 0f, 60f);
+		Dialogue pillagersDial = new Dialogue("The Pillager is stronger than a slime but he is not that strong. You \ncan easily defeat him if you try your best" +
+				" He has 15 damage and \n50 health. He is kinda slow but faster than a slime. The reward for \nkilling him is 15 coins.", hostileoptions , 0f, 40f);
+		Dialogue ghostsDial = new Dialogue("The Ghost is a strong and fast hostile creature. You have to prepare \nto face it" +
+				" He has 35 damage and 100 health. The reward for killing \nit is 35 coins.", hostileoptions , 0f, 60f);
+		Dialogue golemsDial = new Dialogue("The Golem is the strongest but slowest hostile creature. It is really \nstrong, so be completely ready to go against it" +
+				" He has 50 damage \nand 250 health. The reward for killing it is 10 coins.", hostileoptions , 0f, 60f);
+		dialogueManager.addDialogue("alice_knight_dialogue", slimesDial);
+		dialogueManager.addDialogue("alice_knight_dialogue", pillagersDial);
+		dialogueManager.addDialogue("alice_knight_dialogue", ghostsDial);
+		dialogueManager.addDialogue("alice_knight_dialogue", golemsDial);
+
+		DialogueOption byeoption1 = new DialogueOption("I think I can do it!", null, null);
+		DialogueOption byeoption2 = new DialogueOption("I wanna ask something more!", null, () -> dialogsSwitchFirstAlice());
+
+		Array<DialogueOption> byeoption = new Array<>();
+		byeoption.add(byeoption1);
+		byeoption.add(byeoption2);
+
+		DialogueOption byeoption11 = new DialogueOption("Got it, thank you!", null, null);
+		DialogueOption byeoption22 = new DialogueOption("I wanna ask something more!", null, () -> dialogsSwitchFirstAlice());
+
+		Array<DialogueOption> byeoptions = new Array<>();
+		byeoptions.add(byeoption11);
+		byeoptions.add(byeoption22);
+
+		DialogueOption monstersoptions1 = new DialogueOption("Thank you! That's enough to know.", null, null);
+		DialogueOption monstersoptions2 = new DialogueOption("I wanna ask something more!", null, () -> dialogsSwitchFirstAlice());
+		DialogueOption monstersoptions3 = new DialogueOption("Tell me more about slimes.", slimesDial, null);
+		DialogueOption monstersoptions4 = new DialogueOption("Tell me more about pillagers.", pillagersDial, null);
+		DialogueOption monstersoptions5 = new DialogueOption("Tell me more about ghosts.", ghostsDial, null);
+		DialogueOption monstersoptions6 = new DialogueOption("Tell me more about golems.", golemsDial, null);
+
+
+		Array<DialogueOption> monstersoptions = new Array<>();
+		monstersoptions.add(monstersoptions1);
+		monstersoptions.add(monstersoptions2);
+		monstersoptions.add(monstersoptions3);
+		monstersoptions.add(monstersoptions4);
+		monstersoptions.add(monstersoptions5);
+		monstersoptions.add(monstersoptions6);
+
+		Dialogue monsters = new Dialogue("There are several hostile creatures in the world that will stand in \nyour way to The Dark Knight. " +
+				"You will meet slimes, pillagers, ghosts \nand golems. Do you want to know anything specific about them?", monstersoptions, 0f, 60f);
+		dialogueManager.addDialogue("monsters", monsters);
+
+		Dialogue knightDialogue = new Dialogue("The Dark Knight is a powerful and evil being. He was once a human, \nbut was corrupted by a dark force.", byeoption , 0f, 60f);
+		dialogueManager.addDialogue("alice_knight_dialogue", knightDialogue);
+
+		Dialogue npc = new Dialogue("There are few people that will help you out! Merchant can upgrade \nyour stats and mage can sell you health potions. You can find \nthem by going to the left side of the base", byeoptions , 0f, 60f);
+		dialogueManager.addDialogue("npc", npc);
+
+		DialogueOption infooption1 = new DialogueOption("I wanna ask something more!", null, () -> dialogsSwitchFirstAlice());
+		DialogueOption infooption2 = new DialogueOption("Can you tell me about the monsters out here?", monsters, null);
+		DialogueOption infooption3 = new DialogueOption("Can you tell me about The Dark Knight?", knightDialogue, null);
+		DialogueOption infooption4 = new DialogueOption("Is there anyone who can help me along my journey?", npc, null);
+
+		Array<DialogueOption> infooption = new Array<>();
+		infooption.add(infooption1);
+		infooption.add(infooption2);
+		infooption.add(infooption3);
+		infooption.add(infooption4);
+
+		Dialogue rewardDialogue = new Dialogue("Indeed, the Dark Knight has been terrorizing the realm for quite \nsome time now, and the king " +
+				"has promised a great reward to the \none who can defeat him and restore peace to the land. \nMany brave warriors have " +
+				"attempted to challenge the Dark Knight, \nbut none have been successful.", byeoption, 0f, 0f);
+		Dialogue worldDialogue = new Dialogue("Sure, what do you want to know?", infooption, 0f, 80f);
+
+
+		DialogueOption option1 = new DialogueOption("I can handle it", null, null);
+		DialogueOption option2 = new DialogueOption("Is there any reward for doing that?", rewardDialogue, null);
+		DialogueOption option3 = new DialogueOption("Can you tell me more about the world?", worldDialogue, null);
+
+		Array<DialogueOption> options = new Array<>();
+		options.add(option1);
+		options.add(option2);
+		options.add(option3);
+
+		Dialogue firstDialogue = new Dialogue("The once-peaceful lands are now plagued by darkness and despair, \nand the people are living in constant fear. " +
+				"The Dark Knight's reign of \nterror has gone on for far too long, and it is time for someone to \nput an end to it.", options, 0f, 0f);
+
+		dialogueManager.addDialogue("alice_first_dialogue", firstDialogue);
+		dialogueManager.addDialogue("alice_reward_dialogue", rewardDialogue);
+
+		System.out.println("Unit Slime:\nHP: 30, Damage: 5, Reward: 5, ViewDistance: 45, Speed: 40");
+		System.out.println("Unit Pillager:\nHP: 50, Damage: 15, Reward: 15, ViewDistance: 50, Speed: 60");
+		System.out.println("Unit Ghost:\nHP: 100, Damage: 35, Reward: 35, ViewDistance: 60, Speed: 70");
+		System.out.println("Unit Golem:\nHP: 250, Damage: 50, Reward: 100, ViewDistance: 100, Speed: 30");
+		System.out.println("Boss The Dark Knight:\nHP: -, Damage: -, Reward: -");
+
+		TextureAtlas bossAtlas = new TextureAtlas("enemies/boss.atlas");
+		boss = new Boss(bossAtlas, 50, new Vector2(305, 180), collisionLayers, grid, player);
+		enemies.add(boss);
+
+		TextureAtlas projectileAtlas = new TextureAtlas(Gdx.files.internal("projectiles/projectile.atlas"));
 
 	}
 	@Override
@@ -428,6 +514,7 @@ public class PixelGame extends ApplicationAdapter {
 				pillagerBatch.setProjectionMatrix(camera.combined);
 				golemBatch.setProjectionMatrix(camera.combined);
 				npcBatch.setProjectionMatrix(camera.combined);
+				bossBatch.setProjectionMatrix(camera.combined);
 
 				Array<Slime> temporarySlimes = new Array<Slime>(slimeDeathTimes.keySet().toArray(new Slime[0]));
 				for (Slime slime : temporarySlimes) {
@@ -509,6 +596,9 @@ public class PixelGame extends ApplicationAdapter {
 				if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
 					player.addHealthPotion();
 				}
+				if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+
+				}
 
 				// заменяем batch на slimeBatch
 				slimeBatch.begin();
@@ -560,6 +650,21 @@ public class PixelGame extends ApplicationAdapter {
 				golemBatch.end();
 				checkCollisions(); // добавьте эту строку
 
+
+
+				boss.update(Gdx.graphics.getDeltaTime());
+				bossBatch.begin();
+				for (Damager enemy : enemies) {
+					if (enemy instanceof Boss) {
+						Boss boss = (Boss) enemy;
+						boss.checkCollisionWithPlayer(player);
+						boss.update(Gdx.graphics.getDeltaTime());
+						boss.checkTargetInView(player.getPosition());
+						boss.render(bossBatch); // заменяем batch на slimeBatch
+					}
+				}
+				bossBatch.end();
+
 				batch.begin();
 				player.render(batch);
 				batch.end();
@@ -589,6 +694,7 @@ public class PixelGame extends ApplicationAdapter {
 
 				String currentDamage = "Current Damage: " + player.getDamage();
 				coinPotionFont.draw(uiBatch, currentDamage, 10, Gdx.graphics.getHeight() - 70);
+
 				uiBatch.end();
 
 				for (int i = enemies.size - 1; i >= 0; i--) {
@@ -668,6 +774,9 @@ public class PixelGame extends ApplicationAdapter {
 				menu.render();
 				// Рендеринг экрана паузы
 				break;
+			case PAUSE_SPECIFIC:
+				// Рендеринг экрана паузы
+				break;
 		}
 	}
 	public void startGame() {
@@ -676,7 +785,16 @@ public class PixelGame extends ApplicationAdapter {
 		menu.setMenuItemText(0, "Resume");
 		selectedMenuIndex = 0;
 	}
-
+	public void dialogsSwitchFirstAlice() {
+		currentDialogue = dialogueManager.getDialogue("alice_first_dialogue");
+		dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+		dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответ
+	}
+	public void monstersDialog() {
+		currentDialogue = dialogueManager.getDialogue("monsters");
+		dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+		dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответ
+	}
 	public boolean isCellOccupied(float x, float y) {
 		for (TiledMapTileLayer layer : collisionLayers) {
 			int cellX = (int) (x / 16);
@@ -790,6 +908,23 @@ public class PixelGame extends ApplicationAdapter {
 						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
 						player.stopMoving();
 						golem.stopMoving();
+					}
+				}
+			} else if (enemy instanceof Boss) {
+				Boss boss = (Boss) enemy;
+				Rectangle bossRect = boss.getBoundingRectangle();
+				if (Intersector.overlaps(playerRect, bossRect)) {
+					// Коллизия обнаружена
+					if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+						// Если клавиша space нажата, вызываем метод takeDamage для слайма
+						boss.takeDamage(player.getDamage());
+						player.stopMoving();
+						boss.stopMoving();
+					} else {
+//						player.takeDamage(boss.getDamage());
+//						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+//						player.stopMoving();
+//						boss.stopMoving();
 					}
 				}
 			}

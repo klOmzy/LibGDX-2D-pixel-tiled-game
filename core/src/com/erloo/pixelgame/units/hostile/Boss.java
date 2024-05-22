@@ -18,7 +18,7 @@ import com.erloo.pixelgame.pathfinding.Grid;
 
 import java.util.List;
 
-public class Pillager extends Enemy implements Damageable {
+public class Boss extends Enemy implements Damageable {
     private Vector2 position;
     private Animation<TextureRegion> currentAnimation;
     private float stateTime;
@@ -37,7 +37,8 @@ public class Pillager extends Enemy implements Damageable {
     private TextureRegion backFrame;
     private TextureRegion leftFrame;
     private TextureRegion rightFrame;
-    public Pillager(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
+
+    public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
         this.spawnPosition = position.cpy();
@@ -45,11 +46,11 @@ public class Pillager extends Enemy implements Damageable {
         this.collisionLayers = collisionLayers;
         this.grid = grid;
         this.player = player;
-        viewRadius = 50f;
+        viewRadius = 100f;
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
-        health = 50; // устанавливаем максимальное здоровье
+        health = 1000; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
     }
 
@@ -66,7 +67,7 @@ public class Pillager extends Enemy implements Damageable {
                     Node nextNode = path.get(0);
                     Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
                     Vector2 direction = nextPosition.cpy().sub(position).nor();
-                    float speed = 60f;
+                    float speed = 30f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -102,7 +103,7 @@ public class Pillager extends Enemy implements Damageable {
                 // Обновляем позицию и анимацию слайма, когда он не преследует игрока и не соприкасается с ним
                 if (!position.epsilonEquals(spawnPosition, 1f)) {
                     Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 60f;
+                    float speed = 30f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -178,9 +179,9 @@ public class Pillager extends Enemy implements Damageable {
         return currentFrame.getRegionHeight();
     }
     public void checkCollisionWithPlayer(Player player) {
-        Rectangle pillagerRect = getBoundingRectangle();
+        Rectangle bossRect = getBoundingRectangle();
         Rectangle playerRect = player.getBoundingRectangle();
-        if (Intersector.overlaps(pillagerRect, playerRect)) {
+        if (Intersector.overlaps(bossRect, playerRect)) {
             isCollidingWithPlayer = true;
             isChasing = false;
         } else {
@@ -205,7 +206,7 @@ public class Pillager extends Enemy implements Damageable {
     }
     @Override
     public void reward(){
-        int COIN_REWARD = 15;
+        int COIN_REWARD = 100;
         player.getCoins().addCoins(COIN_REWARD);
     }
     public void checkTargetInView(Vector2 target) {
@@ -219,9 +220,13 @@ public class Pillager extends Enemy implements Damageable {
     public int getHealth() {
         return health;
     }
+
     public Rectangle getBoundingRectangle() {
         return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
     }
+//    public Rectangle getBoundingRectangle() {
+//        return new Rectangle(position.x - 8, position.y - 16, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
+//    }
 
     private Animation<TextureRegion> leftAnimation;
     private Animation<TextureRegion> rightAnimation;
@@ -232,11 +237,15 @@ public class Pillager extends Enemy implements Damageable {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
         leftFrames.add(atlas.findRegion("left1"));
         leftFrames.add(atlas.findRegion("left2"));
+        leftFrames.add(atlas.findRegion("left3"));
+        leftFrames.add(atlas.findRegion("left4"));
         leftAnimation = new Animation<>(0.3f, leftFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> rightFrames = new Array<>();
         rightFrames.add(atlas.findRegion("right1"));
         rightFrames.add(atlas.findRegion("right2"));
+        rightFrames.add(atlas.findRegion("right3"));
+        rightFrames.add(atlas.findRegion("right4"));
         rightAnimation = new Animation<>(0.3f, rightFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> backFrames = new Array<>();
@@ -271,7 +280,7 @@ public class Pillager extends Enemy implements Damageable {
     }
     @Override
     public void deathmessage(){
-        String message = "Pillager is dead";
+        String message = "Boss is defeated";
         System.out.println(message);
     }
     public List<Node> findPathToPlayer(Player player) {

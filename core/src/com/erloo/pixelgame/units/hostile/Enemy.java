@@ -7,7 +7,7 @@ import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damager;
 
 public class Enemy implements Damager {
-    private int damage;
+    protected int damage;
     protected boolean isDead;
     protected boolean isBlinking;
     protected float blinkTimer;

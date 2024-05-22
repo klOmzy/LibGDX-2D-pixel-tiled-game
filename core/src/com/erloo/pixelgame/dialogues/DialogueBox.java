@@ -46,16 +46,18 @@ public class DialogueBox {
 //        shapeRenderer.end();
 
         // Draw the dialogue box background
-        uiBatch.draw(dialogBackground, (Gdx.graphics.getWidth() - 400) / 2, (Gdx.graphics.getHeight() - 200) / 2, 400, 200);
+        uiBatch.draw(dialogBackground, (Gdx.graphics.getWidth() - 500) / 2, (Gdx.graphics.getHeight() - 300) / 2, 500, 300);
 
+        // Draw the dialogue text
         // Draw the dialogue text
         if (currentDialogue != null) {
             dialogFont.setColor(Color.WHITE);
             String[] dialogueLines = currentDialogue.getDialogueText().split("\n");
             for (int i = 0; i < dialogueLines.length; i++) {
-                dialogFont.draw(uiBatch, dialogueLines[i], (Gdx.graphics.getWidth() - 400) / 2 + 20, (Gdx.graphics.getHeight() - 200) / 2 + 180 - i * 20);
+                dialogFont.draw(uiBatch, dialogueLines[i], (Gdx.graphics.getWidth() - 500) / 2 + 20, (Gdx.graphics.getHeight() - 300) / 2 + 280 - i * 20 + currentDialogue.getDialogueVerticalOffset());
             }
         }
+
 
         // Draw the dialogue options
         if (currentDialogue != null && currentDialogue.getOptions() != null) { // Check for null values
@@ -66,9 +68,10 @@ public class DialogueBox {
                 } else {
                     dialogFont.setColor(Color.WHITE);
                 }
-                dialogFont.draw(uiBatch, option.getOptionText(), (Gdx.graphics.getWidth() - 400) / 2 + 20, (Gdx.graphics.getHeight() - 200) / 2 + 100 - i * 30);
+                dialogFont.draw(uiBatch, option.getOptionText(), (Gdx.graphics.getWidth() - 500) / 2 + 20, (Gdx.graphics.getHeight() - 300) / 2 + 150 - i * 30 + currentDialogue.getOptionsVerticalOffset());
             }
         }
+
 
         // Reset the font color
         dialogFont.setColor(Color.WHITE);

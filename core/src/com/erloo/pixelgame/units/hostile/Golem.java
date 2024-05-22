@@ -141,7 +141,7 @@ public class Golem extends Enemy implements Damageable {
         }
     }
 
-    public void render(SpriteBatch golemBatch) {
+    public void render(SpriteBatch batch) {
         stateTime += Gdx.graphics.getDeltaTime();
 
         if (isCollidingWithPlayer) {
@@ -157,11 +157,11 @@ public class Golem extends Enemy implements Damageable {
             }
         }
 
-        int golemWidth = currentFrame.getRegionWidth();
-        int golemHeight = currentFrame.getRegionHeight();
+        int width = currentFrame.getRegionWidth();
+        int height = currentFrame.getRegionHeight();
 
-        blinking(golemBatch);
-        golemBatch.draw(currentFrame, position.x - golemWidth / 2, position.y - golemHeight / 2);
+        blinking(batch);
+        batch.draw(currentFrame, position.x - width / 2, position.y - height / 2);
     }
 
     public float getPositionX() {

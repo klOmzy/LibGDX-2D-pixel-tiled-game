@@ -67,7 +67,7 @@ public class Ghost extends Enemy implements Damageable {
                     Node nextNode = path.get(0);
                     Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
                     Vector2 direction = nextPosition.cpy().sub(position).nor();
-                    float speed = 40f;
+                    float speed = 70f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -103,7 +103,7 @@ public class Ghost extends Enemy implements Damageable {
                 // Обновляем позицию и анимацию слайма, когда он не преследует игрока и не соприкасается с ним
                 if (!position.epsilonEquals(spawnPosition, 1f)) {
                     Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 40f;
+                    float speed = 70f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -142,7 +142,7 @@ public class Ghost extends Enemy implements Damageable {
         }
     }
 
-    public void render(SpriteBatch ghostBatch) {
+    public void render(SpriteBatch batch) {
         stateTime += Gdx.graphics.getDeltaTime();
 
         if (isCollidingWithPlayer) {
@@ -158,11 +158,11 @@ public class Ghost extends Enemy implements Damageable {
             }
         }
 
-        int ghostWidth = currentFrame.getRegionWidth();
-        int ghostHeight = currentFrame.getRegionHeight();
+        int wight = currentFrame.getRegionWidth();
+        int height = currentFrame.getRegionHeight();
 
-        blinking(ghostBatch);
-        ghostBatch.draw(currentFrame, position.x - ghostWidth / 2, position.y - ghostHeight / 2);
+        blinking(batch);
+        batch.draw(currentFrame, position.x - wight / 2, position.y - height / 2);
     }
     public void checkCollisionWithPlayer(Player player) {
         Rectangle ghostRect = getBoundingRectangle();
@@ -190,7 +190,7 @@ public class Ghost extends Enemy implements Damageable {
 
     @Override
     public void reward(){
-        int COIN_REWARD = 50;
+        int COIN_REWARD = 35;
         player.getCoins().addCoins(COIN_REWARD);
     }
     public void checkTargetInView(Vector2 target) {

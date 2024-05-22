@@ -46,7 +46,7 @@ public class Slime extends Enemy implements Damageable {
         this.collisionLayers = collisionLayers;
         this.grid = grid;
         this.player = player;
-        viewRadius = 60f;
+        viewRadius = 45f;
         isChasing = false;
         createAnimations();
         currentAnimation = frontAnimation;
@@ -155,7 +155,7 @@ public class Slime extends Enemy implements Damageable {
         }
     }
 
-    public void render(SpriteBatch slimeBatch) {
+    public void render(SpriteBatch batch) {
         stateTime += Gdx.graphics.getDeltaTime();
 
         if (isCollidingWithPlayer) {
@@ -171,11 +171,11 @@ public class Slime extends Enemy implements Damageable {
             }
         }
 
-        int slimeWidth = currentFrame.getRegionWidth();
-        int slimeHeight = currentFrame.getRegionHeight();
+        int width = currentFrame.getRegionWidth();
+        int height = currentFrame.getRegionHeight();
 
-        blinking(slimeBatch);
-        slimeBatch.draw(currentFrame, position.x - slimeWidth / 2, position.y - slimeHeight / 2);
+        blinking(batch);
+        batch.draw(currentFrame, position.x - width / 2, position.y - height / 2);
     }
 
     public void setMoving(boolean moving) { // переопределяем сеттер для isMoving в классе Slime
