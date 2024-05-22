@@ -40,6 +40,7 @@ public class Pillager extends Enemy implements Damageable {
     private float attackTime;
     private float attackInterval; // Интервал между атаками (в секундах)
     private boolean firstCollision;
+
     public Pillager(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;

@@ -44,6 +44,9 @@ public class Boss extends Enemy implements Damageable {
     private float attackTime;
     private float attackInterval; // Интервал между атаками (в секундах)
     private boolean firstCollision;
+    private Animation<TextureRegion> currentAttackAnimation;
+    private boolean isAttacking;
+
     public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
@@ -58,8 +61,11 @@ public class Boss extends Enemy implements Damageable {
         currentAnimation = frontAnimation;
         health = 1000; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
-        attackInterval = 1f;
+        attackInterval = 2f;
         firstCollision = true;
+        currentAttackAnimation = frontAttackAnimation;
+        isAttacking = false;
+
     }
 
     public void update(float delta) {
@@ -144,33 +150,11 @@ public class Boss extends Enemy implements Damageable {
                 }
             }
         } else {
-            List<Node> path = findPathToPlayer(player);
-            if (path != null && !path.isEmpty()) {
-                Node nextNode = path.get(0);
-                Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
-                Vector2 direction = nextPosition.cpy().sub(position).nor();
+            // Обновляем время атаки
+            attackTime += delta;
 
-                // Выбираем анимацию атаки в зависимости от направления движения
-                if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                    if (direction.x > 0) {
-                        currentAnimation = rightAttackAnimation;
-                    } else if (direction.x < 0) {
-                        currentAnimation = leftAttackAnimation;
-                    }
-                } else {
-                    if (direction.y > 0) {
-                        currentAnimation = backAttackAnimation;
-                    } else if (direction.y < 0) {
-                        currentAnimation = frontAttackAnimation;
-                    }
-                }
-
-                // Обновляем время атаки
-                attackTime += delta;
-
-                // Вызываем метод атаки
-                attack(player);
-            }
+            // Вызываем метод атаки
+            attack(player);
         }
 
         if (wasMoving != isMoving()) {
@@ -181,20 +165,44 @@ public class Boss extends Enemy implements Damageable {
     public void render(SpriteBatch batch) {
         stateTime += Gdx.graphics.getDeltaTime();
 
-        if (isCollidingWithPlayer) {
-            TextureRegion firstFrame = currentAnimation.getKeyFrame(0);
-            if (currentFrame.getRegionX() == firstFrame.getRegionX() &&
-                    currentFrame.getRegionY() == firstFrame.getRegionY()) {
-                currentFrame = currentAnimation.getKeyFrame(stateTime);
-                stateTime += Gdx.graphics.getDeltaTime(); // Добавьте эту строку
+        if (isAttacking) {
+            // Проигрывайте анимацию атаки в зависимости от текущего направления движения, когда слайм соприкасается с игроком
+            if (currentAnimation == leftAnimation) {
+                currentFrame = leftAttackAnimation.getKeyFrame(stateTime, false);
+                if (leftAttackAnimation.isAnimationFinished(stateTime)) {
+                    isAttacking = false;
+                    stateTime = 0;
+                    currentFrame = leftAnimation.getKeyFrame(0);
+                }
+            } else if (currentAnimation == rightAnimation) {
+                currentFrame = rightAttackAnimation.getKeyFrame(stateTime, false);
+                if (rightAttackAnimation.isAnimationFinished(stateTime)) {
+                    isAttacking = false;
+                    stateTime = 0;
+                    currentFrame = rightAnimation.getKeyFrame(0);
+                }
+            } else if (currentAnimation == backAnimation) {
+                currentFrame = backAttackAnimation.getKeyFrame(stateTime, false);
+                if (backAttackAnimation.isAnimationFinished(stateTime)) {
+                    isAttacking = false;
+                    stateTime = 0;
+                    currentFrame = backAnimation.getKeyFrame(0);
+                }
+            } else if (currentAnimation == frontAnimation) {
+                currentFrame = frontAttackAnimation.getKeyFrame(stateTime, false);
+                if (frontAttackAnimation.isAnimationFinished(stateTime)) {
+                    isAttacking = false;
+                    stateTime = 0;
+                    currentFrame = frontAnimation.getKeyFrame(0);
+                }
             }
         } else {
-            // Обновляем анимацию, когда слайм не соприкасается с игроком
+            // Обновляйте анимацию, когда слайм не соприкасается с игроком или анимация атаки завершена
             if (isMoving()) {
                 currentFrame = currentAnimation.getKeyFrame(stateTime, true);
             } else {
-                // Устанавливаем первый кадр frontAnimation, когда слайм не двигается и не соприкасается с игроком
-                currentFrame = frontAnimation.getKeyFrame(0);
+                // Устанавливайте первый кадр текущей анимации, когда слайм не двигается и не соприкасается с игроком
+                currentFrame = currentAnimation.getKeyFrame(0);
             }
         }
 
@@ -204,17 +212,41 @@ public class Boss extends Enemy implements Damageable {
         blinking(batch);
         batch.draw(currentFrame, position.x - width / 2, position.y - height / 2);
     }
+
+
+
     public void attack(Player player) {
         if (isCollidingWithPlayer) {
             if (firstCollision) {
                 player.takeDamage(damage);
                 firstCollision = false;
+                // Сохраните текущее направление атаки
+                if (currentAnimation == leftAnimation) {
+                    currentAttackAnimation = leftAttackAnimation;
+                } else if (currentAnimation == rightAnimation) {
+                    currentAttackAnimation = rightAttackAnimation;
+                } else if (currentAnimation == backAnimation) {
+                    currentAttackAnimation = backAttackAnimation;
+                } else if (currentAnimation == frontAnimation) {
+                    currentAttackAnimation = frontAttackAnimation;
+                }
+                // Установите isAttacking в true, чтобы проиграть анимацию атаки
+                isAttacking = true;
+                // Сбросьте stateTime, чтобы синхронизировать анимацию атаки с нанесением урона
+                stateTime = 0;
             } else if (attackTime >= attackInterval) {
                 player.takeDamage(damage);
                 attackTime = 0;
+                // Установите isAttacking в true, чтобы проиграть анимацию атаки
+                isAttacking = true;
+                // Сбросьте stateTime, чтобы синхронизировать анимацию атаки с нанесением урона
+                stateTime = 0;
             }
         }
     }
+
+
+
     public float getPositionX() {
         return position.x;
     }
