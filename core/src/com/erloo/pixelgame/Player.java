@@ -98,7 +98,7 @@ public class Player implements Damageable, Healable {
         boolean isMoving = false;
 
         float speed = 80 * delta;
-        invulnerabilityDuration = 1f;
+        invulnerabilityDuration = 0.5f;
 
         moveX = 0;
         moveY = 0;

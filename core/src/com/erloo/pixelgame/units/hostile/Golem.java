@@ -37,6 +37,9 @@ public class Golem extends Enemy implements Damageable {
     private TextureRegion backFrame;
     private TextureRegion leftFrame;
     private TextureRegion rightFrame;
+    private float attackTime;
+    private float attackInterval; // Интервал между атаками (в секундах)
+    private boolean firstCollision;
     public Golem(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
@@ -51,6 +54,8 @@ public class Golem extends Enemy implements Damageable {
         currentAnimation = frontAnimation;
         health = 250; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
+        attackInterval = 1.2f;
+        firstCollision = true;
     }
 
     public void update(float delta) {
@@ -134,6 +139,11 @@ public class Golem extends Enemy implements Damageable {
                     currentAnimation = frontAnimation;
                 }
             }
+        } else {
+            attackTime += delta;
+
+            // Вызываем метод атаки
+            attack(player);
         }
 
         if (wasMoving != isMoving()) {
@@ -228,7 +238,17 @@ public class Golem extends Enemy implements Damageable {
     private Animation<TextureRegion> rightAnimation;
     private Animation<TextureRegion> backAnimation;
     private Animation<TextureRegion> frontAnimation;
-
+    public void attack(Player player) {
+        if (isCollidingWithPlayer) {
+            if (firstCollision) {
+                player.takeDamage(damage);
+                firstCollision = false;
+            } else if (attackTime >= attackInterval) {
+                player.takeDamage(damage);
+                attackTime = 0;
+            }
+        }
+    }
     private void createAnimations() {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
         leftFrames.add(atlas.findRegion("left1"));

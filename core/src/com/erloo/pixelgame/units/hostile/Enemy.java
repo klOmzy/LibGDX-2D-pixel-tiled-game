@@ -58,6 +58,7 @@ public class Enemy implements Damager {
         int COIN_REWARD = 10;
         player.getCoins().addCoins(COIN_REWARD);
     }
+
     public void deathmessage(){
         String message = "Unit is dead";
         System.out.println(message);

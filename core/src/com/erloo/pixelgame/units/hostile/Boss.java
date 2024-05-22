@@ -37,7 +37,13 @@ public class Boss extends Enemy implements Damageable {
     private TextureRegion backFrame;
     private TextureRegion leftFrame;
     private TextureRegion rightFrame;
-
+    private TextureRegion frontAttackFrame;
+    private TextureRegion backAttackFrame;
+    private TextureRegion leftAttackFrame;
+    private TextureRegion rightAttackFrame;
+    private float attackTime;
+    private float attackInterval; // Интервал между атаками (в секундах)
+    private boolean firstCollision;
     public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
         this.position = position;
@@ -52,6 +58,8 @@ public class Boss extends Enemy implements Damageable {
         currentAnimation = frontAnimation;
         health = 1000; // устанавливаем максимальное здоровье
         pathfinder = new Pathfinder();
+        attackInterval = 1f;
+        firstCollision = true;
     }
 
     public void update(float delta) {
@@ -135,6 +143,34 @@ public class Boss extends Enemy implements Damageable {
                     currentAnimation = frontAnimation;
                 }
             }
+        } else {
+            List<Node> path = findPathToPlayer(player);
+            if (path != null && !path.isEmpty()) {
+                Node nextNode = path.get(0);
+                Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
+                Vector2 direction = nextPosition.cpy().sub(position).nor();
+
+                // Выбираем анимацию атаки в зависимости от направления движения
+                if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                    if (direction.x > 0) {
+                        currentAnimation = rightAttackAnimation;
+                    } else if (direction.x < 0) {
+                        currentAnimation = leftAttackAnimation;
+                    }
+                } else {
+                    if (direction.y > 0) {
+                        currentAnimation = backAttackAnimation;
+                    } else if (direction.y < 0) {
+                        currentAnimation = frontAttackAnimation;
+                    }
+                }
+
+                // Обновляем время атаки
+                attackTime += delta;
+
+                // Вызываем метод атаки
+                attack(player);
+            }
         }
 
         if (wasMoving != isMoving()) {
@@ -146,8 +182,12 @@ public class Boss extends Enemy implements Damageable {
         stateTime += Gdx.graphics.getDeltaTime();
 
         if (isCollidingWithPlayer) {
-            // Останавливаем анимацию, когда слайм соприкасается с игроком
-            currentFrame = currentAnimation.getKeyFrame(0);
+            TextureRegion firstFrame = currentAnimation.getKeyFrame(0);
+            if (currentFrame.getRegionX() == firstFrame.getRegionX() &&
+                    currentFrame.getRegionY() == firstFrame.getRegionY()) {
+                currentFrame = currentAnimation.getKeyFrame(stateTime);
+                stateTime += Gdx.graphics.getDeltaTime(); // Добавьте эту строку
+            }
         } else {
             // Обновляем анимацию, когда слайм не соприкасается с игроком
             if (isMoving()) {
@@ -164,7 +204,17 @@ public class Boss extends Enemy implements Damageable {
         blinking(batch);
         batch.draw(currentFrame, position.x - width / 2, position.y - height / 2);
     }
-
+    public void attack(Player player) {
+        if (isCollidingWithPlayer) {
+            if (firstCollision) {
+                player.takeDamage(damage);
+                firstCollision = false;
+            } else if (attackTime >= attackInterval) {
+                player.takeDamage(damage);
+                attackTime = 0;
+            }
+        }
+    }
     public float getPositionX() {
         return position.x;
     }
@@ -232,7 +282,10 @@ public class Boss extends Enemy implements Damageable {
     private Animation<TextureRegion> rightAnimation;
     private Animation<TextureRegion> backAnimation;
     private Animation<TextureRegion> frontAnimation;
-
+    private Animation<TextureRegion> leftAttackAnimation;
+    private Animation<TextureRegion> rightAttackAnimation;
+    private Animation<TextureRegion> backAttackAnimation;
+    private Animation<TextureRegion> frontAttackAnimation;
     private void createAnimations() {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
         leftFrames.add(atlas.findRegion("left1"));
@@ -262,11 +315,40 @@ public class Boss extends Enemy implements Damageable {
         frontFrames.add(atlas.findRegion("front4"));
         frontAnimation = new Animation<>(0.3f, frontFrames, Animation.PlayMode.LOOP);
 
+        Array<TextureAtlas.AtlasRegion> leftAttackFrames = new Array<>();
+        leftAttackFrames.add(atlas.findRegion("leftattack2"));
+        leftAttackFrames.add(atlas.findRegion("leftattack3"));
+        leftAttackFrames.add(atlas.findRegion("leftattack4"));
+        leftAttackAnimation = new Animation<>(0.1f, leftAttackFrames, Animation.PlayMode.NORMAL);
+
+        Array<TextureAtlas.AtlasRegion> rightAttackFrames = new Array<>();
+        rightAttackFrames.add(atlas.findRegion("rightattack2"));
+        rightAttackFrames.add(atlas.findRegion("rightattack3"));
+        rightAttackFrames.add(atlas.findRegion("rightattack4"));
+        rightAttackAnimation = new Animation<>(0.1f, rightAttackFrames, Animation.PlayMode.NORMAL);
+
+        Array<TextureAtlas.AtlasRegion> backAttackFrames = new Array<>();
+        backAttackFrames.add(atlas.findRegion("backattack2"));
+        backAttackFrames.add(atlas.findRegion("backattack3"));
+        backAttackFrames.add(atlas.findRegion("backattack4"));
+        backAttackAnimation = new Animation<>(0.1f, backAttackFrames, Animation.PlayMode.NORMAL);
+
+        Array<TextureAtlas.AtlasRegion> frontAttackFrames = new Array<>();
+        frontAttackFrames.add(atlas.findRegion("frontattack2"));
+        frontAttackFrames.add(atlas.findRegion("frontattack3"));
+        frontAttackFrames.add(atlas.findRegion("frontattack4"));
+        frontAttackAnimation = new Animation<>(0.1f, frontAttackFrames, Animation.PlayMode.NORMAL);
         // Инициализируем переменные для хранения первых кадров каждой анимации
         frontFrame = frontFrames.get(0);
         backFrame = backFrames.get(0);
         leftFrame = leftFrames.get(0);
         rightFrame = rightFrames.get(0);
+
+        // Инициализируем переменные для хранения первых кадров каждой анимации атаки
+        frontAttackFrame = frontAttackFrames.get(0);
+        backAttackFrame = backAttackFrames.get(0);
+        leftAttackFrame = leftAttackFrames.get(0);
+        rightAttackFrame = rightAttackFrames.get(0);
 
         currentFrame = frontAnimation.getKeyFrame(0);
     }

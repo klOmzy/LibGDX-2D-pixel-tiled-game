@@ -852,11 +852,11 @@ public class PixelGame extends ApplicationAdapter {
 						player.stopMoving();
 						slime.stopMoving();
 					} else {
-						player.takeDamage(slime.getDamage());
-
-						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						player.stopMoving();
-						slime.stopMoving();
+//						player.takeDamage(slime.getDamage());
+//
+//						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+//						player.stopMoving();
+//						slime.stopMoving();
 					}
 				}
 			} else if (enemy instanceof Ghost) {
@@ -870,10 +870,10 @@ public class PixelGame extends ApplicationAdapter {
 						player.stopMoving();
 						ghost.stopMoving();
 					} else {
-						player.takeDamage(ghost.getDamage());
-						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						player.stopMoving();
-						ghost.stopMoving();
+//						player.takeDamage(ghost.getDamage());
+//						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+//						player.stopMoving();
+//						ghost.stopMoving();
 					}
 				}
 			} else if (enemy instanceof Pillager) {
@@ -887,10 +887,10 @@ public class PixelGame extends ApplicationAdapter {
 						player.stopMoving();
 						pillager.stopMoving();
 					} else {
-						player.takeDamage(pillager.getDamage());
-						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						player.stopMoving();
-						pillager.stopMoving();
+//						player.takeDamage(pillager.getDamage());
+//						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+//						player.stopMoving();
+//						pillager.stopMoving();
 					}
 				}
 			} else if (enemy instanceof Golem) {
@@ -904,10 +904,10 @@ public class PixelGame extends ApplicationAdapter {
 						player.stopMoving();
 						golem.stopMoving();
 					} else {
-						player.takeDamage(golem.getDamage());
-						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
-						player.stopMoving();
-						golem.stopMoving();
+//						player.takeDamage(golem.getDamage());
+//						// Если клавиша space не нажата, игрок не может пройти сквозь слайма
+//						player.stopMoving();
+//						golem.stopMoving();
 					}
 				}
 			} else if (enemy instanceof Boss) {
