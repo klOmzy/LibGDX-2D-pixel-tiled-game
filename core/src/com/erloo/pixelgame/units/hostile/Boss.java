@@ -9,6 +9,9 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
+import com.erloo.pixelgame.dialogues.Dialogue;
+import com.erloo.pixelgame.dialogues.DialogueBox;
+import com.erloo.pixelgame.dialogues.DialogueManager;
 import com.erloo.pixelgame.pathfinding.Node;
 import com.erloo.pixelgame.Player;
 import com.erloo.pixelgame.damage.Damageable;
@@ -47,8 +50,12 @@ public class Boss extends Enemy implements Damageable {
     private Animation<TextureRegion> currentAttackAnimation;
     private boolean isAttacking;
     private int maxHealth;
+    private Dialogue currentDialogue;
+    private boolean isDialogueOpen;
+    private DialogueBox dialogueBox;
+    private DialogueManager dialogueManager;
 
-    public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
+    public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player, DialogueBox  dialogueBox, DialogueManager dialogueManager) {
         super(damage, player);
         this.position = position;
         this.spawnPosition = position.cpy();
@@ -56,6 +63,8 @@ public class Boss extends Enemy implements Damageable {
         this.collisionLayers = collisionLayers;
         this.grid = grid;
         this.player = player;
+        this.dialogueBox = dialogueBox;
+        this.dialogueManager = dialogueManager;
         viewRadius = 100f;
         isChasing = false;
         createAnimations();
@@ -77,6 +86,7 @@ public class Boss extends Enemy implements Damageable {
         setInvulnerable(delta);
         if (!isCollidingWithPlayer) {
             if (isChasing) {
+                viewRadius = 1000f;
                 // Обновляем позицию и анимацию слайма, когда он преследует игрока
                 List<Node> path = findPathToPlayer(player);
                 if (path != null && !path.isEmpty()) {
@@ -114,6 +124,7 @@ public class Boss extends Enemy implements Damageable {
                     }
 
                     isMoving = true;
+
                 }
             }
         } else {
@@ -259,7 +270,7 @@ public class Boss extends Enemy implements Damageable {
     }
     @Override
     public void reward(){
-        int COIN_REWARD = 100;
+        int COIN_REWARD = 10000;
         player.getCoins().addCoins(COIN_REWARD);
     }
     public void checkTargetInView(Vector2 target) {
@@ -367,6 +378,10 @@ public class Boss extends Enemy implements Damageable {
     public void deathmessage(){
         String message = "Boss is defeated";
         System.out.println(message);
+        dialogueBox.setActive(true);
+        currentDialogue = dialogueManager.getDialogue("boss_defeat");
+        dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+        dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
     }
     public List<Node> findPathToPlayer(Player player) {
         int playerGridX = (int) (player.getPosition().x / 16);

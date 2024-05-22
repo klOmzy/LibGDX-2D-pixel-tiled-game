@@ -39,6 +39,7 @@ public class PixelGame extends ApplicationAdapter {
 	private SpriteBatch batch;
 	private SpriteBatch uiBatch; // Новый SpriteBatch для UI-элементов
 	private TiledMap map;
+	private TiledMap bossArenaMap;
 	private TiledMap mapBackground;
 	private OrthogonalTiledMapRenderer backgroundRenderer ;
 	private OrthogonalTiledMapRenderer foregroundRenderer ;
@@ -478,11 +479,16 @@ public class PixelGame extends ApplicationAdapter {
 		dialogueManager.addDialogue("game_start", gameStart);
 
 		TextureAtlas bossAtlas = new TextureAtlas("enemies/boss.atlas");
-		boss = new Boss(bossAtlas, 150, new Vector2(305, 180), collisionLayers, grid, player);
+		boss = new Boss(bossAtlas, 150, new Vector2(305, 180), collisionLayers, grid, player, dialogueBox, dialogueManager);
 		enemies.add(boss);
 
 		TextureAtlas projectileAtlas = new TextureAtlas(Gdx.files.internal("projectiles/projectile.atlas"));
 
+		DialogueOption bossDefeatOption = new DialogueOption("You defeated the Dark Knight! The realm is safe once again.", null, null);
+		Array<DialogueOption> bossDefeatOptions = new Array<>();
+		bossDefeatOptions.add(bossDefeatOption);
+		Dialogue bossDefeatDialogue = new Dialogue("", bossDefeatOptions, 0f, 0f, 0f, 60f, 0f, 0f);
+		dialogueManager.addDialogue("boss_defeat", bossDefeatDialogue);
 
 	}
 	@Override
@@ -585,11 +591,33 @@ public class PixelGame extends ApplicationAdapter {
 
 				backgroundRenderer.setView(camera);
 				backgroundRenderer.render();
+				if (boss.getIsChasing()) {
+					// Загрузить новую карту
+					bossArenaMap = new TmxMapLoader().load("bossarenamap.tmx");
+
+					// Найти все слои столкновений на новой карте
+					for (MapLayer layer : bossArenaMap.getLayers()) {
+						if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
+							boolean isCollisionLayer = (boolean) layer.getProperties().get("collision");
+							if (isCollisionLayer) {
+								collisionLayers.add((TiledMapTileLayer) layer);
+							}
+						}
+					}
+					if (collisionLayers.size == 0) {
+						throw new RuntimeException("Collision layers not found on new map");
+					}
+					// grid.printGrid(); // выводим Grid в консоль
+				}
 
 				shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-				healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
+				if (boss.getHealth() > 0) {
+					healthBar.renderShape(shapeRenderer, player.getHealth(), player.getMaxHealth());
+				}
 				if (boss.getIsChasing()) {
-					bossHealthBar.renderShape(shapeRenderer, boss.getHealth(), boss.getMaxHealth());
+					if (boss.getHealth() > 0) {
+						bossHealthBar.renderShape(shapeRenderer, boss.getHealth(), boss.getMaxHealth());
+					}
 				}
 				shapeRenderer.end();
 
@@ -691,15 +719,17 @@ public class PixelGame extends ApplicationAdapter {
 				batch.end();
 
 				uiBatch.begin();
-				String coinText = "Coins: " + player.getCoins().getCoins();
-				coinPotionFont.draw(uiBatch, coinText, 10, Gdx.graphics.getHeight() - 10);
-				// Отображаем зелья
+				if (boss.getHealth() > 0 &&! player.isDead()) {
+					String coinText = "Coins: " + player.getCoins().getCoins();
+					coinPotionFont.draw(uiBatch, coinText, 10, Gdx.graphics.getHeight() - 10);
+					// Отображаем зелья
 
-				String healthPotionText = "Health Potions: " + player.getNumHealthPotions();
-				coinPotionFont.draw(uiBatch, healthPotionText, 10, Gdx.graphics.getHeight() - 40);
+					String healthPotionText = "Health Potions: " + player.getNumHealthPotions();
+					coinPotionFont.draw(uiBatch, healthPotionText, 10, Gdx.graphics.getHeight() - 40);
 
-				String currentDamage = "Current Damage: " + player.getDamage();
-				coinPotionFont.draw(uiBatch, currentDamage, 10, Gdx.graphics.getHeight() - 70);
+					String currentDamage = "Current Damage: " + player.getDamage();
+					coinPotionFont.draw(uiBatch, currentDamage, 10, Gdx.graphics.getHeight() - 70);
+				}
 
 				if (player.isDead()) {
 					deathFont.setColor(Color.RED);
@@ -709,12 +739,16 @@ public class PixelGame extends ApplicationAdapter {
 					deathFont.draw(uiBatch, layout, Gdx.graphics.getWidth() / 2 - layout.width / 2, Gdx.graphics.getHeight() / 2);
 				}
 				else {
-					healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+					if (boss.getHealth() > 0) {
+						healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+					}
 				}
 				if (boss.getIsChasing()) { // добавьте это условие
-					bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
-					String bossName = "THE DARK KNIGHT";
-					bossFont.draw(uiBatch, bossName, 215, 450);
+					if (boss.getHealth() > 0) {
+						bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
+						String bossName = "THE DARK KNIGHT";
+						bossFont.draw(uiBatch, bossName, 215, 450);
+					}
 				}
 				if (alice.isActive()) {
 					dialogueBox.setDialogueOpen(true);
@@ -741,6 +775,9 @@ public class PixelGame extends ApplicationAdapter {
 					else if (enemy instanceof Golem && ((Golem) enemy).isDead()) {
 						enemies.removeIndex(i);
 						golemDeathTimes.put((Golem) enemy, 0f); // добавляем время смерти слайма в список
+					}
+					else if (enemy instanceof Boss && ((Boss) enemy).isDead()) {
+						enemies.removeIndex(i);
 					}
 				}
 				if (Gdx.input.isKeyJustPressed(Input.Keys.M)) { // проверяем нажатие клавиши M

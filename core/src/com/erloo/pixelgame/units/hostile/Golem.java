@@ -286,6 +286,9 @@ public class Golem extends Enemy implements Damageable {
 
         currentFrame = frontAnimation.getKeyFrame(0);
     }
+    public void setGrid(Grid grid) {
+        this.grid = grid;
+    }
 
     public Vector2 getSpawnPosition() {
         return spawnPosition;
@@ -305,6 +308,7 @@ public class Golem extends Enemy implements Damageable {
         Node startNode = grid.getNode((int) (position.x / 16), (int) (position.y / 16));
         Node endNode = grid.getNode(playerGridX, playerGridY);
         return pathfinder.findPath(startNode, endNode, grid);
+
     }
 }
 

@@ -217,6 +217,7 @@ public class Player implements Damageable, Healable {
                 health.heal(100000); // Восстанавливаем здоровье до 100 HP
             }
         }
+        // System.out.println("Player position: (" + position.x + ", " + position.y + ")");
     }
 
     public void render(SpriteBatch batch) {
@@ -320,17 +321,21 @@ public class Player implements Damageable, Healable {
     }
     public boolean isCellOccupied(float x, float y) {
         for (TiledMapTileLayer layer : collisionLayers) {
-            int cellX = (int) (x / 16);
-            int cellY = (int) (y / 16);
-            if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
-                TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
-                if (cell != null && cell.getTile() != null) {
-                    return true;
+            // Проверяем, что свойство collision имеет значение true для текущего слоя
+            if (layer.getProperties().get("collision", Boolean.class)) {
+                int cellX = (int) (x / 16);
+                int cellY = (int) (y / 16);
+                if (cellX >= 0 && cellX < layer.getWidth() && cellY >= 0 && cellY < layer.getHeight()) {
+                    TiledMapTileLayer.Cell cell = layer.getCell(cellX, cellY);
+                    if (cell != null && cell.getTile() != null) {
+                        return true;
+                    }
                 }
             }
         }
         return false;
     }
+
 
     public Rectangle getBoundingRectangle() {
         return new Rectangle(position.x, position.y, currentFrame.getRegionWidth(), currentFrame.getRegionHeight());
