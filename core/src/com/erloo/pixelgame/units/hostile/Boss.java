@@ -46,6 +46,7 @@ public class Boss extends Enemy implements Damageable {
     private boolean firstCollision;
     private Animation<TextureRegion> currentAttackAnimation;
     private boolean isAttacking;
+    private int maxHealth;
 
     public Boss(TextureAtlas atlas, int damage, Vector2 position, Array<TiledMapTileLayer> collisionLayers, Grid grid, Player player) {
         super(damage, player);
@@ -60,8 +61,9 @@ public class Boss extends Enemy implements Damageable {
         createAnimations();
         currentAnimation = frontAnimation;
         health = 1000; // устанавливаем максимальное здоровье
+        maxHealth = 1000;
         pathfinder = new Pathfinder();
-        attackInterval = 2f;
+        attackInterval = 1.7f;
         firstCollision = true;
         currentAttackAnimation = frontAttackAnimation;
         isAttacking = false;
@@ -81,7 +83,7 @@ public class Boss extends Enemy implements Damageable {
                     Node nextNode = path.get(0);
                     Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
                     Vector2 direction = nextPosition.cpy().sub(position).nor();
-                    float speed = 30f;
+                    float speed = 70f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -112,41 +114,6 @@ public class Boss extends Enemy implements Damageable {
                     }
 
                     isMoving = true;
-                }
-            } else {
-                // Обновляем позицию и анимацию слайма, когда он не преследует игрока и не соприкасается с ним
-                if (!position.epsilonEquals(spawnPosition, 1f)) {
-                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
-                    float speed = 30f;
-
-                    float newX = position.x;
-                    float newY = position.y;
-
-                    newX += direction.x * speed * delta;
-                    position.x = newX;
-
-                    newY += direction.y * speed * delta;
-                    position.y = newY;
-
-                    // Обновляем анимацию в соответствии с направлением, когда слайм возвращается на свою исходную позицию
-                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
-                        if (direction.x > 0) {
-                            currentAnimation = rightAnimation;
-                        } else if (direction.x < 0) {
-                            currentAnimation = leftAnimation;
-                        }
-                    } else {
-                        if (direction.y > 0) {
-                            currentAnimation = backAnimation;
-                        } else if (direction.y < 0) {
-                            currentAnimation = frontAnimation;
-                        }
-                    }
-
-                    isMoving = true;
-                } else {
-                    // Устанавливаем frontAnimation, когда слайм не двигается и не соприкасается с игроком
-                    currentAnimation = frontAnimation;
                 }
             }
         } else {
@@ -244,8 +211,12 @@ public class Boss extends Enemy implements Damageable {
             }
         }
     }
-
-
+    public boolean getIsChasing() {
+        return isChasing;
+    }
+    public int getMaxHealth() {
+        return maxHealth;
+    }
 
     public float getPositionX() {
         return position.x;

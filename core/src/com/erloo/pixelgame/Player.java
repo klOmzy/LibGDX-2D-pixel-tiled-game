@@ -46,7 +46,7 @@ public class Player implements Damageable, Healable {
     private float moveX;
     private float moveY;
     private Vector2 previousPosition = new Vector2();
-    boolean isPlayerActive = true;
+    boolean isPlayerActive;
     private Coin coins;
     private int numHealthPotions;
     public Player(TextureAtlas atlas, Array<TiledMapTileLayer> collisionLayers, OrthographicCamera camera, float spawnX, float spawnY) {
@@ -60,7 +60,7 @@ public class Player implements Damageable, Healable {
         position = new Vector2(0, 0);
         this.position.set(spawnX, spawnY);
         health = new Health(100); // устанавливаем максимальное здоровье
-
+        isPlayerActive = true;
         numHealthPotions = 0;
 
         attackCooldown = 0; // Initialize the attack cooldown to 0
@@ -273,10 +273,6 @@ public class Player implements Damageable, Healable {
     public Coin getCoins() {
         return coins;
     }
-    public boolean isPlayerActive() {
-        return isPlayerActive;
-    }
-
     public void centerCamera() {
         float cameraX = position.x;
         float cameraY = position.y;

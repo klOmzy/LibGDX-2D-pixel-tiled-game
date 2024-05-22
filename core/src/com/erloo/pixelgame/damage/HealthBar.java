@@ -34,4 +34,8 @@ public class HealthBar {
         font.setColor(Color.WHITE);
         font.draw(batch, currentHealth + " / " + maxHealth, x+ 10, y  + 16);
     }
+    public void bossRenderText(SpriteBatch batch, int currentHealth, int maxHealth) {
+        font.setColor(Color.WHITE);
+        font.draw(batch, currentHealth + " / " + maxHealth, x+ 130, y  + 18);
+    }
 }

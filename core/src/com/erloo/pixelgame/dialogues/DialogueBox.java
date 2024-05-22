@@ -21,6 +21,7 @@ public class DialogueBox {
     private boolean isActive;
     private Player player;
 
+
     public DialogueBox(BitmapFont dialogFont, Dialoguable dialoguable, Player player) {
         this.dialogFont = dialogFont;
         this.dialoguable = dialoguable;
@@ -46,7 +47,8 @@ public class DialogueBox {
 //        shapeRenderer.end();
 
         // Draw the dialogue box background
-        uiBatch.draw(dialogBackground, (Gdx.graphics.getWidth() - 500) / 2, (Gdx.graphics.getHeight() - 300) / 2, 500, 300);
+        // Draw the dialogue box background
+        uiBatch.draw(dialogBackground, (Gdx.graphics.getWidth() - (500 + currentDialogue.getDialogueBoxHorizontalOffset())) / 2, (Gdx.graphics.getHeight() - (300 + currentDialogue.getDialogueBoxVerticalOffset())) / 2, 500 + currentDialogue.getDialogueBoxHorizontalOffset(), 300 + currentDialogue.getDialogueBoxVerticalOffset());
 
         // Draw the dialogue text
         // Draw the dialogue text
@@ -54,7 +56,7 @@ public class DialogueBox {
             dialogFont.setColor(Color.WHITE);
             String[] dialogueLines = currentDialogue.getDialogueText().split("\n");
             for (int i = 0; i < dialogueLines.length; i++) {
-                dialogFont.draw(uiBatch, dialogueLines[i], (Gdx.graphics.getWidth() - 500) / 2 + 20, (Gdx.graphics.getHeight() - 300) / 2 + 280 - i * 20 + currentDialogue.getDialogueVerticalOffset());
+                dialogFont.draw(uiBatch, dialogueLines[i], (Gdx.graphics.getWidth() - 500) / 2 + 20 + currentDialogue.getDialogueHorizontalOffset(), (Gdx.graphics.getHeight() - 300) / 2 + 280 - i * 25 + currentDialogue.getDialogueVerticalOffset());
             }
         }
 
@@ -68,7 +70,7 @@ public class DialogueBox {
                 } else {
                     dialogFont.setColor(Color.WHITE);
                 }
-                dialogFont.draw(uiBatch, option.getOptionText(), (Gdx.graphics.getWidth() - 500) / 2 + 20, (Gdx.graphics.getHeight() - 300) / 2 + 150 - i * 30 + currentDialogue.getOptionsVerticalOffset());
+                dialogFont.draw(uiBatch, option.getOptionText(), (Gdx.graphics.getWidth() - 500) / 2 + 20 + currentDialogue.getOptionsHorizontalOffset(), (Gdx.graphics.getHeight() - 300) / 2 + 150 - i * 30 + currentDialogue.getOptionsVerticalOffset());
             }
         }
 

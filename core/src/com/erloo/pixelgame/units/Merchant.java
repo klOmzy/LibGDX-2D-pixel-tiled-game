@@ -71,6 +71,7 @@ public class Merchant extends NPC {
     public void startDialogue() {
         currentDialogue = dialogueManager.getDialogue("merchantfirst");
         dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+        dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
     }
     public void purchaseUpgradeDamage() {
         if (player.getCoins().getCoins() >= DAMAGE_UPGRADE_COST) { // Проверяем, достаточно ли денег у игрока

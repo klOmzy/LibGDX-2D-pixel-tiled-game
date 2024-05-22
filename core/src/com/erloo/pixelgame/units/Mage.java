@@ -68,6 +68,7 @@ public class Mage extends NPC {
     public void startDialogue() {
         currentDialogue = dialogueManager.getDialogue("magefirst");
         dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
+        dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответа
     }
     public void purchaseHealthPotion() {
         if (player.getCoins().getCoins() >= HEALTH_POTION_PRICE) { // Проверяем, достаточно ли денег у игрока
