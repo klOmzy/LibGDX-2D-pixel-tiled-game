@@ -65,7 +65,7 @@ public class Menu {
                 // Загрузка вашего уровня
                 break;
             case "Resume":
-                game.startGame();
+                game.resumeGame();
                 // Загрузка вашего уровня
                 break;
             case "Exit":

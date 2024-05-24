@@ -95,6 +95,9 @@ public class PixelGame extends ApplicationAdapter {
 	private Dialogue currentDialogue;
 	private Boss boss;
 	private SpriteBatch bossBatch;
+	private Texture coinTexture;
+	private Texture potionTexture;
+	private Texture damageTexture;
 
 	public enum GameState {
 		MENU,
@@ -474,7 +477,7 @@ public class PixelGame extends ApplicationAdapter {
 		firstDiao.add(firstDia);
 
 		Dialogue gameStart = new Dialogue("Hello there, player! I hope this short guide will help you understand the game \nbetter. " +
-				"Alright, let me tell you about the controls in the game. \n\nWASD - direction movement buttons \nSpace - attack \nH - use health potions \nE - interact with NPCs \nM - open fullscreen map \nIn dialogues, use the arrows up and down to select an answer \nPress Enter to confirm your choice.\n\nWell that pretty much enough to know about inputs. The goal of the game is \ndefeating the boss, but you have to prepare before! Talk to Alice, she is near \nyour current location. Good luck and have fun! PRESS ENTER TO PLAY", firstDiao, -50f, 50f, -50f, -300f, 100f, 100f);
+				"Alright, let me tell you about the controls in the game. \n\nWASD - direction movement buttons \nSpace - attack \nH - use health potions \nE - interact with NPCs \nM - open fullscreen map \nIn dialogues, use the arrows up and down to select an answer \nPress Enter to confirm your choice.\n\nIn the upper corner of the screen you can see your current coins, health potions \nand damage. The goal of the game is defeating the boss, but you have to prepare \nbefore! Talk to Alice, she is near your current location. Good luck and have fun! \nPRESS ENTER TO PLAY", firstDiao, -50f, 50f, -50f, -300f, 100f, 100f);
 
 		dialogueManager.addDialogue("game_start", gameStart);
 
@@ -484,11 +487,15 @@ public class PixelGame extends ApplicationAdapter {
 
 		TextureAtlas projectileAtlas = new TextureAtlas(Gdx.files.internal("projectiles/projectile.atlas"));
 
-		DialogueOption bossDefeatOption = new DialogueOption("You defeated the Dark Knight! The realm is safe once again.", null, null);
+		DialogueOption bossDefeatOption = new DialogueOption("You defeated the Dark Knight! The realm is safe once again.\n\nThanks for playing!!!", null, () -> endGame());
 		Array<DialogueOption> bossDefeatOptions = new Array<>();
 		bossDefeatOptions.add(bossDefeatOption);
-		Dialogue bossDefeatDialogue = new Dialogue("", bossDefeatOptions, 0f, 0f, 0f, 60f, 0f, 0f);
+		Dialogue bossDefeatDialogue = new Dialogue("", bossDefeatOptions, 0f, 0f, 20f, 60f, 0f, 0f);
 		dialogueManager.addDialogue("boss_defeat", bossDefeatDialogue);
+
+		coinTexture = new Texture(Gdx.files.internal("coin.png")); // загружаем текстуру монеты
+		potionTexture = new Texture(Gdx.files.internal("potion.png")); // загружаем текстуру монеты
+		damageTexture = new Texture(Gdx.files.internal("damage.png")); // загружаем текстуру монеты
 
 	}
 	@Override
@@ -588,6 +595,11 @@ public class PixelGame extends ApplicationAdapter {
 				merchant.update(Gdx.graphics.getDeltaTime());
 				merchant.render(npcBatch);
 				npcBatch.end();
+
+				if (player.isDead()) {
+					unloadBossArenaMap();
+					boss.setIsChasing(false);
+				}
 
 				backgroundRenderer.setView(camera);
 				backgroundRenderer.render();
@@ -717,20 +729,32 @@ public class PixelGame extends ApplicationAdapter {
 				batch.begin();
 				player.render(batch);
 				batch.end();
-
+				if (boss.getIsChasing()) { // добавьте это условие
+					if (boss.getHealth() > 0) {
+						bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
+						String bossName = "THE DARK KNIGHT";
+						bossFont.draw(uiBatch, bossName, 215, 450);
+					}
+				}
 				uiBatch.begin();
 				if (boss.getHealth() > 0 &&! player.isDead()) {
-					String coinText = "Coins: " + player.getCoins().getCoins();
-					coinPotionFont.draw(uiBatch, coinText, 10, Gdx.graphics.getHeight() - 10);
+					uiBatch.draw(coinTexture, 10, Gdx.graphics.getHeight() - 30); // рисуем изображение монеты
+					coinPotionFont.draw(uiBatch, ": " + player.getCoins().getCoins(), 30, Gdx.graphics.getHeight() - 15); // рисуем текст с отступом в 16 пикселей
+//					String coinText = "Coins: " + player.getCoins().getCoins();
+//					coinPotionFont.draw(uiBatch, coinText, 10, Gdx.graphics.getHeight() - 10);
 					// Отображаем зелья
 
-					String healthPotionText = "Health Potions: " + player.getNumHealthPotions();
-					coinPotionFont.draw(uiBatch, healthPotionText, 10, Gdx.graphics.getHeight() - 40);
+					uiBatch.draw(potionTexture, 10, Gdx.graphics.getHeight() - 60); // рисуем изображение монеты
+					coinPotionFont.draw(uiBatch, ": "+ player.getNumHealthPotions(), 30, Gdx.graphics.getHeight() - 45);
 
-					String currentDamage = "Current Damage: " + player.getDamage();
-					coinPotionFont.draw(uiBatch, currentDamage, 10, Gdx.graphics.getHeight() - 70);
+					uiBatch.draw(damageTexture, 10, Gdx.graphics.getHeight() - 90); // рисуем изображение монеты
+					coinPotionFont.draw(uiBatch, ": " + player.getDamage(), 30, Gdx.graphics.getHeight() - 75);
 				}
-
+				if (alice.isActive()) {
+					dialogueBox.setDialogueOpen(true);
+					dialogueBox.render(uiBatch);
+					alice.getDialogueBox().handleInput();
+				}
 				if (player.isDead()) {
 					deathFont.setColor(Color.RED);
 					Gdx.gl.glClearColor(0, 0, 0, 1);
@@ -743,19 +767,6 @@ public class PixelGame extends ApplicationAdapter {
 						healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
 					}
 				}
-				if (boss.getIsChasing()) { // добавьте это условие
-					if (boss.getHealth() > 0) {
-						bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
-						String bossName = "THE DARK KNIGHT";
-						bossFont.draw(uiBatch, bossName, 215, 450);
-					}
-				}
-				if (alice.isActive()) {
-					dialogueBox.setDialogueOpen(true);
-					dialogueBox.render(uiBatch);
-					alice.getDialogueBox().handleInput();
-				}
-
 				uiBatch.end();
 
 				for (int i = enemies.size - 1; i >= 0; i--) {
@@ -848,6 +859,48 @@ public class PixelGame extends ApplicationAdapter {
 		dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox
 		dialogueBox.setSelectedOption(0); // Сбросить выбранный вариант ответ
 	}
+	public void resumeGame() {
+		state = GameState.PLAY;
+		// Загрузка вашего уровня
+		menu.setMenuItemText(0, "Resume");
+	}
+	public void endGame() {
+		Gdx.app.exit();
+	}
+	public void unloadBossArenaMap() {
+		map = new TmxMapLoader().load("map.tmx"); // загружаем новую карту
+
+		collisionLayers.clear(); // очищаем collisionLayers
+
+		for (MapLayer layer : map.getLayers()) { // проходим по всем слоям новой карты
+			if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
+				boolean isCollisionLayer = (boolean) layer.getProperties().get("collision");
+				if (isCollisionLayer) {
+					collisionLayers.add((TiledMapTileLayer) layer); // добавляем слой столкновений в collisionLayers
+				}
+			}
+		}
+
+		if (collisionLayers.size == 0) {
+			throw new RuntimeException("Collision layers not found");
+		}
+
+//		collisionLayers.clear(); // очищаем collisionLayers
+//		collisionLayers = new Array<>();
+//		for (MapLayer layer : map.getLayers()) {
+//			if (layer instanceof TiledMapTileLayer && layer.getProperties().containsKey("collision")) {
+//				boolean isCollisionLayer = (boolean) layer.getProperties().get("collision");
+//				if (isCollisionLayer) {
+//					collisionLayers.add((TiledMapTileLayer) layer);
+//				}
+//			}
+//		}
+//		if (collisionLayers.size == 0) {
+//			throw new RuntimeException("Collision layers not found");
+//		}
+	}
+
+
 	public void dialogsSwitchFirstAlice() {
 		currentDialogue = dialogueManager.getDialogue("alice_first_dialogue");
 		dialogueBox.setDialogue(currentDialogue); // Устанавливаем текущий диалог в объекте DialogueBox

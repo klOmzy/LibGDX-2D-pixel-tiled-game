@@ -1,6 +1,7 @@
 package com.erloo.pixelgame.units.hostile;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -78,7 +79,6 @@ public class Boss extends Enemy implements Damageable {
         isAttacking = false;
 
     }
-
     public void update(float delta) {
         boolean wasMoving = isMoving();
         isMoving = false;
@@ -93,7 +93,7 @@ public class Boss extends Enemy implements Damageable {
                     Node nextNode = path.get(0);
                     Vector2 nextPosition = new Vector2(nextNode.x * 16, nextNode.y * 16);
                     Vector2 direction = nextPosition.cpy().sub(position).nor();
-                    float speed = 70f;
+                    float speed = 30f;
 
                     float newX = position.x;
                     float newY = position.y;
@@ -126,6 +126,42 @@ public class Boss extends Enemy implements Damageable {
                     isMoving = true;
 
                 }
+            } else {
+                heal(1000);
+                viewRadius = 100f;
+                if (!position.epsilonEquals(spawnPosition, 1f)) {
+                    Vector2 direction = spawnPosition.cpy().sub(position).nor();
+                    float speed = 100f;
+
+                    float newX = position.x;
+                    float newY = position.y;
+
+                    newX += direction.x * speed * delta;
+                    position.x = newX;
+
+                    newY += direction.y * speed * delta;
+                    position.y = newY;
+
+                    // Обновляем анимацию в соответствии с направлением, когда слайм возвращается на свою исходную позицию
+                    if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                        if (direction.x > 0) {
+                            currentAnimation = rightAnimation;
+                        } else if (direction.x < 0) {
+                            currentAnimation = leftAnimation;
+                        }
+                    } else {
+                        if (direction.y > 0) {
+                            currentAnimation = backAnimation;
+                        } else if (direction.y < 0) {
+                            currentAnimation = frontAnimation;
+                        }
+                    }
+
+                    isMoving = true;
+                } else {
+                    // Устанавливаем frontAnimation, когда слайм не двигается и не соприкасается с игроком
+                    currentAnimation = frontAnimation;
+                }
             }
         } else {
             // Обновляем время атаки
@@ -137,6 +173,10 @@ public class Boss extends Enemy implements Damageable {
 
         if (wasMoving != isMoving()) {
             stateTime = 0;
+        }
+        if (player.isDead()) {
+            isChasing = false;
+            target = null;
         }
     }
 
@@ -184,14 +224,21 @@ public class Boss extends Enemy implements Damageable {
             }
         }
 
-        int width = currentFrame.getRegionWidth();
-        int height = currentFrame.getRegionHeight();
+//        int width = currentFrame.getRegionWidth();
+//        int height = currentFrame.getRegionHeight();
+        int width = currentFrame.getRegionWidth() * 2;
+        int height = currentFrame.getRegionHeight() * 2;
 
         blinking(batch);
-        batch.draw(currentFrame, position.x - width / 2, position.y - height / 2);
+        batch.draw(currentFrame, position.x - width / 2, position.y - height / 2, width, height);
+
     }
-
-
+    public void heal(int amount) {
+        health += amount;
+        if (health > maxHealth) {
+            health = maxHealth;
+        }
+    }
 
     public void attack(Player player) {
         if (isCollidingWithPlayer) {
@@ -225,6 +272,10 @@ public class Boss extends Enemy implements Damageable {
     public boolean getIsChasing() {
         return isChasing;
     }
+    public void setIsChasing(boolean isChasing) {
+        this.isChasing = isChasing;
+    }
+
     public int getMaxHealth() {
         return maxHealth;
     }
@@ -304,15 +355,11 @@ public class Boss extends Enemy implements Damageable {
         Array<TextureAtlas.AtlasRegion> leftFrames = new Array<>();
         leftFrames.add(atlas.findRegion("left1"));
         leftFrames.add(atlas.findRegion("left2"));
-        leftFrames.add(atlas.findRegion("left3"));
-        leftFrames.add(atlas.findRegion("left4"));
         leftAnimation = new Animation<>(0.3f, leftFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> rightFrames = new Array<>();
         rightFrames.add(atlas.findRegion("right1"));
         rightFrames.add(atlas.findRegion("right2"));
-        rightFrames.add(atlas.findRegion("right3"));
-        rightFrames.add(atlas.findRegion("right4"));
         rightAnimation = new Animation<>(0.3f, rightFrames, Animation.PlayMode.LOOP);
 
         Array<TextureAtlas.AtlasRegion> backFrames = new Array<>();
@@ -333,25 +380,25 @@ public class Boss extends Enemy implements Damageable {
         leftAttackFrames.add(atlas.findRegion("leftattack2"));
         leftAttackFrames.add(atlas.findRegion("leftattack3"));
         leftAttackFrames.add(atlas.findRegion("leftattack4"));
-        leftAttackAnimation = new Animation<>(0.1f, leftAttackFrames, Animation.PlayMode.NORMAL);
+        leftAttackAnimation = new Animation<>(0.15f, leftAttackFrames, Animation.PlayMode.NORMAL);
 
         Array<TextureAtlas.AtlasRegion> rightAttackFrames = new Array<>();
         rightAttackFrames.add(atlas.findRegion("rightattack2"));
         rightAttackFrames.add(atlas.findRegion("rightattack3"));
         rightAttackFrames.add(atlas.findRegion("rightattack4"));
-        rightAttackAnimation = new Animation<>(0.1f, rightAttackFrames, Animation.PlayMode.NORMAL);
+        rightAttackAnimation = new Animation<>(0.15f, rightAttackFrames, Animation.PlayMode.NORMAL);
 
         Array<TextureAtlas.AtlasRegion> backAttackFrames = new Array<>();
         backAttackFrames.add(atlas.findRegion("backattack2"));
         backAttackFrames.add(atlas.findRegion("backattack3"));
         backAttackFrames.add(atlas.findRegion("backattack4"));
-        backAttackAnimation = new Animation<>(0.1f, backAttackFrames, Animation.PlayMode.NORMAL);
+        backAttackAnimation = new Animation<>(0.15f, backAttackFrames, Animation.PlayMode.NORMAL);
 
         Array<TextureAtlas.AtlasRegion> frontAttackFrames = new Array<>();
         frontAttackFrames.add(atlas.findRegion("frontattack2"));
         frontAttackFrames.add(atlas.findRegion("frontattack3"));
         frontAttackFrames.add(atlas.findRegion("frontattack4"));
-        frontAttackAnimation = new Animation<>(0.1f, frontAttackFrames, Animation.PlayMode.NORMAL);
+        frontAttackAnimation = new Animation<>(0.15f, frontAttackFrames, Animation.PlayMode.NORMAL);
         // Инициализируем переменные для хранения первых кадров каждой анимации
         frontFrame = frontFrames.get(0);
         backFrame = backFrames.get(0);
