@@ -1,0 +1,15 @@
+projectile.png
+size:512,32
+repeat:none
+red_beam
+index:4
+bounds:2,2,96,16
+red_beam
+index:1
+bounds:100,2,96,16
+red_beam
+index:3
+bounds:198,2,96,16
+red_beam
+index:2
+bounds:296,2,96,16

@@ -10,7 +10,7 @@ public class DesktopLauncher {
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 		config.setForegroundFPS(60);
 		config.setTitle("2D Tiled-based Pixel Game");
-		config.setWindowIcon("assets/icon.png"); // Добавьте эту строку
+		config.setWindowIcon("icon.png");
 		new Lwjgl3Application(new PixelGame(), config);
 	}
 }

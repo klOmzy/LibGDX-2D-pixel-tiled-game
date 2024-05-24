@@ -729,13 +729,7 @@ public class PixelGame extends ApplicationAdapter {
 				batch.begin();
 				player.render(batch);
 				batch.end();
-				if (boss.getIsChasing()) { // добавьте это условие
-					if (boss.getHealth() > 0) {
-						bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
-						String bossName = "THE DARK KNIGHT";
-						bossFont.draw(uiBatch, bossName, 215, 450);
-					}
-				}
+
 				uiBatch.begin();
 				if (boss.getHealth() > 0 &&! player.isDead()) {
 					uiBatch.draw(coinTexture, 10, Gdx.graphics.getHeight() - 30); // рисуем изображение монеты
@@ -765,6 +759,13 @@ public class PixelGame extends ApplicationAdapter {
 				else {
 					if (boss.getHealth() > 0) {
 						healthBar.renderText(uiBatch, player.getHealth(), player.getMaxHealth());
+					}
+				}
+				if (boss.getIsChasing()) { // добавьте это условие
+					if (boss.getHealth() > 0) {
+						bossHealthBar.bossRenderText(uiBatch, boss.getHealth(), boss.getMaxHealth());
+						String bossName = "THE DARK KNIGHT";
+						bossFont.draw(uiBatch, bossName, 215, 450);
 					}
 				}
 				uiBatch.end();
