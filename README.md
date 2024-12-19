@@ -18,7 +18,7 @@ Study Project
 
 Последняя версия игры: 
 
-- https://github.com/klOmzy/LibGDX-2D-pixel-tiled-game/releases/tag/0.5
+    https://github.com/klOmzy/LibGDX-2D-pixel-tiled-game/releases/tag/0.5
 
 Необходимо скачать файл "pixelgame.exe" для запуска игры. После запуска приложения следуйте инструкциям на экране для лучшего понимания прохождения игры.
 
